@@ -1,0 +1,72 @@
+{
+  "type": "FeatureCollection",
+  "startCoordinates": [10.4021, 55.4444],
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "AOI 7689",
+        "location": "Jylland",
+        "imageUrl": "images/maptestimage.png",
+        "newImagesCount": 3
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.4021, 55.4444]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "AOI 1295",
+        "location": "Jylland",
+        "imageUrl": "images/maptestimage.png",
+        "newImagesCount": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.4050, 55.4450]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "AOI 4994",
+        "location": "Jylland",
+        "imageUrl": "images/maptestimage.png",
+        "newImagesCount": 2
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.3985, 55.4410]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "AOI 4034",
+        "location": "Jylland",
+        "imageUrl": "images/maptestimage.png",
+        "newImagesCount": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.4100, 55.4430]
+      }
+    },
+   
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "AOI 2298",
+        "location": "Jylland",
+        "imageUrl": "images/maptestimage.png",
+        "newImagesCount": 5
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.3900, 55.4430]
+      }
+    }
+  ]
+}
