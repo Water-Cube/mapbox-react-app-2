@@ -1,9 +1,10 @@
 // App.js
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import MapboxExample from './map';
-import SidePanel from './components/sidepanel3';
+import MapboxExample from './components/map';
+import SidePanel from './components/sidepanel';
 import LoginPage from './components/LoginPage';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const MapContainer = styled.div`
   position: relative;

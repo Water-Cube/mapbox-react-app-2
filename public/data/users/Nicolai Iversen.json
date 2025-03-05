@@ -1,0 +1,30 @@
+  {
+    "username": "Nicolai Iversen",
+    "full_name": "Nicolai Iversen",
+    "email": "nicolai.iversen@example.com",
+    "age": 29,
+    "location": "🌎 Denmark",
+    "preferences": {
+      "theme": "dark",
+      "language": "Danish",
+      "notifications": true
+    },
+    "membership_status": "active",
+    "created_at": "2025-01-12T12:00:00Z",
+    "password": "Hello",
+    "tilesets": [
+      {
+        "id": "area1",
+        "url": "mapbox://simonvp.area1",
+        "name": "Area 1",
+        "location": "Special Zone"
+      },
+      {
+        "id": "area2",
+        "url": "mapbox://simonvp.area2",
+        "name": "Area 2",
+        "location": "Special Zone"
+      }
+    ]
+  }
+  

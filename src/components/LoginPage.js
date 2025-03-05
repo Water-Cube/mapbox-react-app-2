@@ -31,7 +31,7 @@ const LoginPage = ({ onLogin }) => {
     } else if (step === 'password') {
       if (password) {
         // Fetch the user JSON file dynamically based on the email
-        fetch(`/data/${email}.json`)
+        fetch(`/data/users/${email}.json`)
           .then((res) => {
             if (!res.ok) {
               throw new Error('User not found');
