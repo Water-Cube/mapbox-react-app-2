@@ -18,7 +18,7 @@
       "url": "mapbox://simonvp.area1",
       "name": "Area 1",
       "location": "Teglholmen",
-      "date": "2025-01-15T12:00:00Z",
+      "date": "2025-01-15T12:00:00",
       "newEvents": 0
     },
     {
@@ -26,7 +26,7 @@
       "url": "mapbox://simonvp.area2",
       "name": "Area 2",
       "location": "Nyborg",
-      "date": "2025-01-10T12:00:00Z",
+      "date": "2025-01-10T12:00:00",
       "newEvents": 0
     },
     {
@@ -34,16 +34,49 @@
       "url": "mapbox://simonvp.SIWEI2024rgb1",
       "name": "FE-130524-1",
       "location": "Femern",
-      "date": "2024-05-13T12:45:00+01:00",
+      "date": "2024-05-13T12:45:00",
       "newEvents": 1
     },
     {
-      "id": "maxar2022rgb",
-      "url": "mapbox://simonvp.maxar2022rgb",
-      "name": "FE-220822-1",
+      "id": "MAXAR30cm_22082022_1026",
+      "url": "mapbox://simonvp.MAXAR30cm_22082022_1026",
+      "name": "MAXAR30cm_22082022_1026",
       "location": "Femern",
-      "date": "2022-08-22T12:26:00+01:00",
+      "date": "2022-08-22T10:26:00",
+      "newEvents": 0
+    },
+    {
+      "id": "Siwei50cm_13052024_1245",
+      "url": "mapbox://simonvp.Siwei50cm_13052024_1245",
+      "name": "Siwei50cm_13052024_1245",
+      "location": "Femern",
+      "date": "2024-05-13T12:45:00",
+      "newEvents": 0
+    },
+    {
+      "id": "Skysat67cm_16022025_0859",
+      "url": "mapbox://simonvp.Skysat67cm_16022025_0859",
+      "name": "Skysat67cm_16022025_0859",
+      "location": "Femern",
+      "date": "2025-02-16T08:59:00",
+      "newEvents": 0
+    },
+    {
+      "id": "Pleaides50cm_16022025_1131",
+      "url": "mapbox://simonvp.Pleaides50cm_16022025_1131",
+      "name": "Pleaides50cm_16022025_1131",
+      "location": "Femern",
+      "date": "2025-02-16T11:31:00",
+      "newEvents": 0
+    },
+    {
+      "id": "PNE03_UP",
+      "url": "mapbox://simonvp.PNE03_UP",
+      "name": "PNE03_UP",
+      "location": "Femern",
+      "date": "2025-03-19T10:40:35",
       "newEvents": 0
     }
+    
   ]
 }

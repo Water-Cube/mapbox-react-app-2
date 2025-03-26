@@ -59,7 +59,7 @@ const LoginPage = ({ onLogin }) => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundImage: 'url(/images/loginbg.png)',
+        backgroundImage: 'url(/images/loginbg3.jpg)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         display: 'flex',

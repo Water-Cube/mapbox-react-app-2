@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -11,7 +10,8 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad }) => {
   const [map, setMap] = useState(null);
   const [isSupported, setIsSupported] = useState(true);
   const [coordinates, setCoordinates] = useState({ lat: '--', lng: '--' });
-  const [mapStyle, setMapStyle] = useState('dark'); // Track current style
+  const [mapStyle, setMapStyle] = useState('dark');
+  const [selectedTileset, setSelectedTileset] = useState(null);
 
   useEffect(() => {
     if (!mapboxgl.supported()) {
@@ -19,14 +19,14 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad }) => {
       return;
     }
 
-   mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
+    mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
     const denmarkCenter = [9.5018, 56.2639];
 
     const initializeMap = (centerCoordinates) => {
       mapRef.current = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: 'mapbox://styles/mapbox/dark-v11',
+        style: 'mapbox://styles/mapbox/light-v11',
         center: centerCoordinates,
         zoom: 6,
         attributionControl: false,
@@ -34,12 +34,10 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad }) => {
       });
 
       setMap(mapRef.current);
-      // Call the callback so the parent knows the map is ready.
       if (onMapLoad) onMapLoad(mapRef.current);
 
       mapRef.current.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
 
-      // Track mouse movement for lat/lng display
       mapRef.current.on('mousemove', (e) => {
         setCoordinates({ lat: e.lngLat.lat.toFixed(4), lng: e.lngLat.lng.toFixed(4) });
       });
@@ -47,7 +45,6 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad }) => {
 
     initializeMap(denmarkCenter);
 
-    // When the map first loads, fetch and add the tilesets
     mapRef.current.on('load', () => {
       fetch(`/data/users/${userId}.json`)
         .then((res) => res.json())
@@ -69,22 +66,18 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad }) => {
               type: 'raster',
               source: ts.id,
               paint: { 'raster-opacity': 1 },
+              layout: { visibility: 'none' },
             });
           });
         })
         .catch((error) => console.error('Error fetching user file:', error));
     });
 
-    // Listen for style changes and re-add custom tileset layers after the new style loads
     const handleStyleLoad = () => {
       if (tilesetsRef.current.length > 0) {
         tilesetsRef.current.forEach((ts) => {
-          if (mapRef.current.getLayer(ts.id)) {
-            mapRef.current.removeLayer(ts.id);
-          }
-          if (mapRef.current.getSource(ts.id)) {
-            mapRef.current.removeSource(ts.id);
-          }
+          if (mapRef.current.getLayer(ts.id)) mapRef.current.removeLayer(ts.id);
+          if (mapRef.current.getSource(ts.id)) mapRef.current.removeSource(ts.id);
 
           mapRef.current.addSource(ts.id, {
             type: 'raster',
@@ -97,6 +90,7 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad }) => {
             type: 'raster',
             source: ts.id,
             paint: { 'raster-opacity': 1 },
+            layout: { visibility: 'none' }, // Always none; SidePanelComposite handles visibility
           });
         });
       }
@@ -115,31 +109,42 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad }) => {
     if (mapRef.current && selectedCoordinates) {
       mapRef.current.flyTo({
         center: selectedCoordinates,
-        zoom: 14,
+        zoom: 12,
         speed: 1.5,
       });
+      console.log('Map flying to selectedCoordinates:', selectedCoordinates);
     }
   }, [selectedCoordinates]);
 
-  // Toggle between Standard & Satellite styles
   const toggleMapStyle = () => {
     const newStyle =
       mapStyle === 'dark'
         ? 'mapbox://styles/mapbox/satellite-streets-v11'
         : 'mapbox://styles/mapbox/dark-v11';
 
-    setMapStyle(mapStyle === 'dark' ? 'satellite' : 'dark'); // Update state
-
+    setMapStyle(mapStyle === 'dark' ? 'satellite' : 'dark');
     if (mapRef.current) {
       mapRef.current.setStyle(newStyle);
     }
   };
 
+  useEffect(() => {
+    const handleTilesetSelect = (event) => {
+      const tileset = event.detail;
+      console.log('Tileset selected in MapboxExample:', tileset);
+      setSelectedTileset(tileset);
+    };
+
+    window.addEventListener('tilesetSelected', handleTilesetSelect);
+
+    return () => {
+      window.removeEventListener('tilesetSelected', handleTilesetSelect);
+    };
+  }, []);
+
   return (
     <>
       {!isSupported && <p style={{ color: 'red' }}>WebGL is not supported in your browser.</p>}
-
-      {/* Toolbar for lat/lng display and toggle button */}
       <div
         style={{
           position: 'absolute',
@@ -163,7 +168,6 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad }) => {
         >
           Lat: {coordinates.lat}, Lng: {coordinates.lng}
         </div>
-
         <button
           onClick={toggleMapStyle}
           style={{
@@ -180,13 +184,17 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad }) => {
           onMouseOver={(e) => (e.target.style.background = 'rgba(255, 255, 255, 0.2)')}
           onMouseOut={(e) => (e.target.style.background = 'rgba(0, 0, 0, 0.6)')}
         >
-          {mapStyle === 'light' ? 'Satellite' : 'Standard'}
+          {mapStyle === 'dark' ? 'Satellite' : 'Standard'}
         </button>
       </div>
-
-      {/* Map Container */}
       <div ref={mapContainerRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
-      {map && <Markers map={map} />}
+      {map && (
+        <Markers
+          map={map}
+          userId={userId}
+          selectedTileset={selectedTileset}
+        />
+      )}
     </>
   );
 };
