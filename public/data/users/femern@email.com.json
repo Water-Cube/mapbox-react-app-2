@@ -40,7 +40,7 @@
     {
       "id": "MAXAR30cm_22082022_1026",
       "url": "mapbox://simonvp.MAXAR30cm_22082022_1026",
-      "name": "MAXAR30cm_22082022_1026",
+      "name": "FE-22082022-1026",
       "location": "Femern",
       "date": "2022-08-22T10:26:00",
       "newEvents": 0
@@ -48,15 +48,15 @@
     {
       "id": "Siwei50cm_13052024_1245",
       "url": "mapbox://simonvp.Siwei50cm_13052024_1245",
-      "name": "Siwei50cm_13052024_1245",
+      "name": "FE_13052024_1245",
       "location": "Femern",
       "date": "2024-05-13T12:45:00",
       "newEvents": 0
     },
     {
-      "id": "Skysat67cm_16022025_0859",
-      "url": "mapbox://simonvp.Skysat67cm_16022025_0859",
-      "name": "Skysat67cm_16022025_0859",
+      "id": "Skysat321updated160220250859321",
+      "url": "mapbox://simonvp.Skysat321updated160220250859321",
+      "name": "FE_16022025_0859",
       "location": "Femern",
       "date": "2025-02-16T08:59:00",
       "newEvents": 0
@@ -64,7 +64,7 @@
     {
       "id": "Pleaides50cm_16022025_1131",
       "url": "mapbox://simonvp.Pleaides50cm_16022025_1131",
-      "name": "Pleaides50cm_16022025_1131",
+      "name": "FE_16022025_1131",
       "location": "Femern",
       "date": "2025-02-16T11:31:00",
       "newEvents": 0
@@ -72,7 +72,7 @@
     {
       "id": "PNE03_UP",
       "url": "mapbox://simonvp.PNE03_UP",
-      "name": "PNE03_UP",
+      "name": "FE-19032025-104035",
       "location": "Femern",
       "date": "2025-03-19T10:40:35",
       "newEvents": 0

@@ -28,8 +28,8 @@ const AoiPanel = ({
   setSelectedIndex,
   setSubPanelOpen,
   aisMarkers,
-  selectedVessel, // Received from props
-  setSelectedVessel, // Setter from props
+  selectedVessel,
+  setSelectedVessel,
 }) => {
   const [selectedSpecialTileset, setSelectedSpecialTileset] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
@@ -60,7 +60,7 @@ const AoiPanel = ({
       onLocationSelect(coords);
       setSelectedSpecialTileset(null);
       setSelectedDate('');
-      setSelectedVessel(null); // Reset vessel selection
+      setSelectedVessel(null);
       if (currentAoi.isSpecial && currentAoi.tilesets.length > 0) {
         const latestTileset = currentAoi.tilesets[0];
         setSelectedSpecialTileset(latestTileset.id);
@@ -137,6 +137,20 @@ const AoiPanel = ({
     setSelectedVessel(feature);
   };
 
+  // Helper function to determine the image URL based on AOI location
+  const getAoiImageUrl = (loc) => {
+    const locationLower = loc.location.toLowerCase();
+    if (locationLower.includes('teglholmen')) {
+      return '/images/teglholmen.png';
+    } else if (locationLower.includes('nyborg')) {
+      return '/images/nyborg.png';
+    } else if (locationLower.includes('femern')) {
+      return '/images/femern.png';
+    }
+    // Fallback image if no specific match
+    return '/images/placeholder.png';
+  };
+
   const renderAoiContent = () => {
     if (!subPanelOpen && !selectedVessel) {
       // Main AOI List
@@ -146,62 +160,66 @@ const AoiPanel = ({
             Areas of Interest
           </Typography>
           <List>
-            {locations.map((loc, idx) => (
-             <ListItemButton
-             key={loc.id}
-             selected={selectedIndex === idx}
-             onClick={() => handleLocationSelect(idx, loc.coordinates)}
-             sx={{
-               mb: 1,
-               borderRadius: 1,
-               minHeight: '60px', // Taller buttons
-               py: 2, // Vertical padding for height
-               backgroundImage: `url('/images/placeholder.png')`, // Static image
-               backgroundSize: 'cover',
-               backgroundPosition: 'center',
-               backgroundColor: 'rgba(255, 255, 255, 0.1)', // Base overlay
-               transition: 'background-color 0.2s ease, transform 0.2s ease', // Smooth transition
-               '&:hover': {
-                 backgroundColor: 'rgba(255, 255, 255, 0.15)', // Subtle overlay change
-                 transform: 'scale(1.02)', // Slight zoom (2% scale increase)
-               },
-             }}
-              >
-                <Box
+            {locations.map((loc, idx) => {
+              const imageUrl = getAoiImageUrl(loc); // Get dynamic image URL
+
+              return (
+                <ListItemButton
+                  key={loc.id}
+                  selected={selectedIndex === idx}
+                  onClick={() => handleLocationSelect(idx, loc.coordinates)}
                   sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    width: '100%',
+                    mb: 1,
+                    borderRadius: 1,
+                    minHeight: '60px',
+                    py: 2,
+                    backgroundImage: `url(${imageUrl})`, // Dynamic image based on location
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    transition: 'background-color 0.2s ease, transform 0.2s ease',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                      transform: 'scale(1.02)',
+                    },
                   }}
                 >
-                  <Typography variant="subtitle1" sx={{ color: '#fff' }}>
-                    {loc.name}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {(loc.isSpecial ? loc.newEvents : loc.newImagesCount !== 'N/A' && loc.newImagesCount > 0) && (
-                      <Badge badgeContent={loc.isSpecial ? loc.newEvents : loc.newImagesCount} color="error">
-                        <NotificationsIcon sx={{ color: '#fff' }} />
-                      </Badge>
-                    )}
-                    {selectedIndex === idx && (
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSubPanelOpen(true);
-                          onLocationSelect(loc.coordinates);
-                        }}
-                        sx={{ ml: 1, borderColor: '#fff', color: '#fff' }}
-                      >
-                        View Details
-                      </Button>
-                    )}
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                    }}
+                  >
+                    <Typography variant="subtitle1" sx={{ color: '#fff' }}>
+                      {loc.name}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {(loc.isSpecial ? loc.newEvents : loc.newImagesCount !== 'N/A' && loc.newImagesCount > 0) && (
+                        <Badge badgeContent={loc.isSpecial ? loc.newEvents : loc.newImagesCount} color="error">
+                          <NotificationsIcon sx={{ color: '#fff' }} />
+                        </Badge>
+                      )}
+                      {selectedIndex === idx && (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSubPanelOpen(true);
+                            onLocationSelect(loc.coordinates);
+                          }}
+                          sx={{ ml: 1, borderColor: '#fff', color: '#fff' }}
+                        >
+                          View Details
+                        </Button>
+                      )}
+                    </Box>
                   </Box>
-                </Box>
-              </ListItemButton>
-            ))}
+                </ListItemButton>
+              );
+            })}
           </List>
         </Box>
       );
@@ -538,6 +556,12 @@ const AoiPanel = ({
     } else if (selectedVessel) {
       // Vessel Details View
       const props = selectedVessel.properties;
+      
+      // Construct the image URL using the MMSI
+      const vesselImage = props.mmsi 
+        ? `/images/vessel_${props.mmsi}.png` 
+        : '/images/vessel_205210000.png'; // Fallback if MMSI is missing
+
       return (
         <Box sx={{ p: 2, color: '#fff' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -553,8 +577,12 @@ const AoiPanel = ({
           </Box>
           <Box
             component="img"
-            src="/images/placeholdervessel.jpg"
-            alt="Vessel"
+            src={vesselImage} // Unique image based on MMSI
+            alt={props.name || 'Vessel'}
+            onError={(e) => {
+              // Fallback to placeholder if the specific vessel image doesn't exist
+              e.target.src = '/images/placeholdervessel.jpg';
+            }}
             sx={{
               width: '100%',
               height: '200px',

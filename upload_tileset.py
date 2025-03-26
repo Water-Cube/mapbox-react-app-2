@@ -8,10 +8,10 @@ def main():
     
     # Your Mapbox username and desired tileset ID
     username = "simonvp"
-    tileset_id = "Beijing30cm_21032025_1145"
+    tileset_id = "Skysat321updated160220250859321"
     
     # Full path to the GeoTIFF file
-    file_path = "/Users/mountainmedia/Downloads/Beijing30cm_21032025_1145.tif"
+    file_path = "/Users/mountainmedia/Downloads/Skysat67cm_16022025_0859_321.tif"
     
     # Combine username and tileset ID
     tileset = f"{username}.{tileset_id}"
