@@ -30,6 +30,8 @@ const AoiPanel = ({
   aisMarkers,
   selectedVessel,
   setSelectedVessel,
+  showPaths,
+  togglePaths,
 }) => {
   const [selectedSpecialTileset, setSelectedSpecialTileset] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
@@ -115,7 +117,7 @@ const AoiPanel = ({
   const formatDateTimeCET = (dateStr) => {
     const cleanDateStr = dateStr.replace(/Z|[+-]\d{2}:\d{2}$/, '');
     const date = cleanDateStr.split('T')[0];
-    const time = cleanDateStr.split('T')[1].slice(0, 5);
+    const time = cleanDateStr.split('T')[1]?.slice(0, 5) || '';
     return { date, time };
   };
 
@@ -137,23 +139,16 @@ const AoiPanel = ({
     setSelectedVessel(feature);
   };
 
-  // Helper function to determine the image URL based on AOI location
   const getAoiImageUrl = (loc) => {
     const locationLower = loc.location.toLowerCase();
-    if (locationLower.includes('teglholmen')) {
-      return '/images/teglholmen.png';
-    } else if (locationLower.includes('nyborg')) {
-      return '/images/nyborg.png';
-    } else if (locationLower.includes('femern')) {
-      return '/images/femern.png';
-    }
-    // Fallback image if no specific match
+    if (locationLower.includes('teglholmen')) return '/images/teglholmen.png';
+    if (locationLower.includes('nyborg')) return '/images/nyborg.png';
+    if (locationLower.includes('femern')) return '/images/femern.png';
     return '/images/placeholder.png';
   };
 
   const renderAoiContent = () => {
     if (!subPanelOpen && !selectedVessel) {
-      // Main AOI List
       return (
         <Box sx={{ p: 2, color: '#fff' }}>
           <Typography variant="h5" sx={{ mb: 1, fontWeight: 'bold' }}>
@@ -161,8 +156,7 @@ const AoiPanel = ({
           </Typography>
           <List>
             {locations.map((loc, idx) => {
-              const imageUrl = getAoiImageUrl(loc); // Get dynamic image URL
-
+              const imageUrl = getAoiImageUrl(loc);
               return (
                 <ListItemButton
                   key={loc.id}
@@ -173,7 +167,7 @@ const AoiPanel = ({
                     borderRadius: 1,
                     minHeight: '60px',
                     py: 2,
-                    backgroundImage: `url(${imageUrl})`, // Dynamic image based on location
+                    backgroundImage: `url(${imageUrl})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -184,14 +178,7 @@ const AoiPanel = ({
                     },
                   }}
                 >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      width: '100%',
-                    }}
-                  >
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <Typography variant="subtitle1" sx={{ color: '#fff' }}>
                       {loc.name}
                     </Typography>
@@ -224,7 +211,6 @@ const AoiPanel = ({
         </Box>
       );
     } else if (subPanelOpen && !selectedVessel) {
-      // AOI Details Subpanel
       const currentAoi = locations[selectedIndex];
       if (!currentAoi) return null;
 
@@ -235,9 +221,7 @@ const AoiPanel = ({
           const { date } = formatDateTimeCET(firstTileset.dateCET);
           setSelectedSpecialTileset(firstTileset.id);
           setSelectedDate(date);
-          if (onTilesetSelect) {
-            onTilesetSelect(firstTileset);
-          }
+          if (onTilesetSelect) onTilesetSelect(firstTileset);
           window.dispatchEvent(new CustomEvent('tilesetSelected', { detail: firstTileset }));
           if (map) {
             currentAoi.tilesets.forEach((ts) => {
@@ -251,9 +235,7 @@ const AoiPanel = ({
 
         const tilesetsByDate = currentAoi.tilesets.reduce((acc, ts) => {
           const { date } = formatDateTimeCET(ts.dateCET);
-          if (!acc[date]) {
-            acc[date] = [];
-          }
+          if (!acc[date]) acc[date] = [];
           acc[date].push(ts);
           return acc;
         }, {});
@@ -406,6 +388,22 @@ const AoiPanel = ({
                   );
                 })}
             </Box>
+            {/* Vessel Paths Toggle Button */}
+            <Box sx={{ mb: 2 }}>
+              <Button
+                variant="contained"
+                onClick={togglePaths}
+                sx={{
+                  backgroundColor: showPaths ? '#ff4444' : '#4444ff',
+                  color: '#fff',
+                  '&:hover': {
+                    backgroundColor: showPaths ? '#cc3333' : '#3333cc',
+                  },
+                }}
+              >
+                {showPaths ? 'Hide Vessel Paths' : 'Show Vessel Paths'}
+              </Button>
+            </Box>
             <Box sx={{ mt: 2 }}>
               <Typography variant="h6" sx={{ color: '#fff', fontWeight: 'bold', mb: 1 }}>
                 Active Vessels ({aisMarkers.active.length})
@@ -554,21 +552,13 @@ const AoiPanel = ({
         );
       }
     } else if (selectedVessel) {
-      // Vessel Details View
       const props = selectedVessel.properties;
-      
-      // Construct the image URL using the MMSI
-      const vesselImage = props.mmsi 
-        ? `/images/vessel_${props.mmsi}.png` 
-        : '/images/vessel_205210000.png'; // Fallback if MMSI is missing
+      const vesselImage = props.mmsi ? `/images/vessel_${props.mmsi}.png` : '/images/vessel_205210000.png';
 
       return (
         <Box sx={{ p: 2, color: '#fff' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <IconButton
-              onClick={() => setSelectedVessel(null)}
-              sx={{ color: '#fff' }}
-            >
+            <IconButton onClick={() => setSelectedVessel(null)} sx={{ color: '#fff' }}>
               <ChevronLeftIcon />
             </IconButton>
             <Typography variant="h5" sx={{ ml: 1, fontWeight: 'bold' }}>
@@ -577,10 +567,9 @@ const AoiPanel = ({
           </Box>
           <Box
             component="img"
-            src={vesselImage} // Unique image based on MMSI
+            src={vesselImage}
             alt={props.name || 'Vessel'}
             onError={(e) => {
-              // Fallback to placeholder if the specific vessel image doesn't exist
               e.target.src = '/images/placeholdervessel.jpg';
             }}
             sx={{

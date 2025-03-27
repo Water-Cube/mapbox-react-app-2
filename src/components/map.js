@@ -3,7 +3,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Markers from './markers';
 
-const MapboxExample = ({ selectedCoordinates, userId, onMapLoad }) => {
+const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togglePaths }) => {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const tilesetsRef = useRef([]);
@@ -90,7 +90,7 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad }) => {
             type: 'raster',
             source: ts.id,
             paint: { 'raster-opacity': 1 },
-            layout: { visibility: 'none' }, // Always none; SidePanelComposite handles visibility
+            layout: { visibility: 'none' },
           });
         });
       }
@@ -192,7 +192,9 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad }) => {
         <Markers
           map={map}
           userId={userId}
-          selectedTileset={selectedTileset}
+          showControls={false} // Disable Markers' own button
+          showPaths={showPaths}
+          togglePaths={togglePaths}
         />
       )}
     </>

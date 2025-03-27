@@ -35,7 +35,11 @@ function calculateCenterFromBounds(bounds) {
   return [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
 }
 
-const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect }) => {
+function isPointInBounds([lng, lat], [minLng, minLat, maxLng, maxLat]) {
+  return lng >= minLng && lng <= maxLng && lat >= minLat && lat <= maxLat;
+}
+
+const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, showPaths, togglePaths }) => {
   const [activeMenu, setActiveMenu] = useState('overview');
   const [locations, setLocations] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(null);
@@ -48,7 +52,9 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect }) 
     autoRefresh: false,
   });
   const [aisMarkers, setAisMarkers] = useState({ active: [], all: [] });
-  const [selectedVessel, setSelectedVessel] = useState(null); // State for selected vessel
+  const [allVisibleVessels, setAllVisibleVessels] = useState([]);
+  const [selectedVessel, setSelectedVessel] = useState(null);
+  const [userFullName, setUserFullName] = useState(''); // New state for full_name
 
   useEffect(() => {
     const userFile = `/data/users/${userId}.json`;
@@ -57,28 +63,33 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect }) 
       .then((data) => {
         const normalLocations = [];
         const tilesets = data.tilesets || [];
+        setUserFullName(data.full_name || 'User'); // Set full_name from JSON, fallback to 'User'
         Promise.all(
           tilesets.map(async (ts) => {
             const imageDateCET = ts.date.replace(/Z|[+-]\d{2}:\d{2}$/, '');
             let coords = null;
+            let bounds = null;
             try {
               const response = await fetch(
                 `https://api.mapbox.com/tilesets/v1/simonvp.${ts.id}?access_token=${MAPBOX_ACCESS_TOKEN}`
               );
               const metadata = await response.json();
               if (metadata && metadata.bounds) {
+                bounds = metadata.bounds;
                 coords = calculateCenterFromBounds(metadata.bounds);
               }
             } catch (error) {
               console.warn(`Failed to fetch metadata for tileset ${ts.id}:`, error);
             }
             if (!coords) coords = [0, 0];
+            if (!bounds) bounds = [0, 0, 0, 0];
             const previewUrl = ts.name === 'Area 2' ? '/data/thumbnail2.png' : '/data/thumbnail1.png';
             return {
               id: ts.id,
               name: ts.name,
               location: ts.location,
               coordinates: coords,
+              bounds,
               newImagesCount: 'N/A',
               isSpecial: true,
               url: ts.url,
@@ -100,6 +111,7 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect }) 
                 isSpecial: true,
                 tilesets: [],
                 coordinates: ts.coordinates,
+                bounds: ts.bounds,
               };
             }
             groupedSpecials[locKey].tilesets.push(ts);
@@ -118,16 +130,47 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect }) 
   useEffect(() => {
     const handleAisMarkersUpdated = (event) => {
       const { active = [], all = [] } = event.detail || {};
-      console.log('Received AIS Markers in SidePanel - Active:', active.length, 'All:', all.length);
+      console.log('AIS Markers Updated - Active:', active.length, 'All:', all.length);
+
+      const uniqueVesselsMap = new Map();
+      all.forEach((vessel) => {
+        const mmsi = vessel.properties.mmsi;
+        if (!uniqueVesselsMap.has(mmsi)) {
+          uniqueVesselsMap.set(mmsi, vessel);
+        } else {
+          const existing = uniqueVesselsMap.get(mmsi);
+          if (new Date(vessel.properties.timestamp) > new Date(existing.properties.timestamp)) {
+            uniqueVesselsMap.set(mmsi, vessel);
+          }
+        }
+      });
+      const uniqueVessels = Array.from(uniqueVesselsMap.values());
+      console.log('Unique vessels by MMSI:', uniqueVessels.length);
+
+      if (allVisibleVessels.length === 0) {
+        const visibleVessels = uniqueVessels.filter((vessel) => {
+          if (!vessel.geometry || !vessel.geometry.coordinates) {
+            console.warn('Vessel missing coordinates:', vessel);
+            return false;
+          }
+          const [lng, lat] = vessel.geometry.coordinates;
+          return locations.some((loc) =>
+            loc.tilesets.some((ts) => isPointInBounds([lng, lat], ts.bounds))
+          );
+        });
+        console.log('Visible unique vessels:', visibleVessels.length);
+        setAllVisibleVessels(visibleVessels);
+      }
+
       setAisMarkers({ active, all });
     };
 
     const handleVesselSelected = (event) => {
       const vessel = event.detail;
       setSelectedVessel(vessel);
-      setActiveMenu('aoi'); // Switch to AOI panel
-      setSubPanelOpen(true); // Ensure subpanel is open
-      console.log('Vessel selected in SidePanel:', vessel.properties.mmsi);
+      setActiveMenu('aoi');
+      setSubPanelOpen(true);
+      console.log('Vessel selected in SidePanel:', vessel?.properties.mmsi);
     };
 
     window.addEventListener('aisMarkersUpdated', handleAisMarkersUpdated);
@@ -137,13 +180,13 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect }) 
       window.removeEventListener('aisMarkersUpdated', handleAisMarkersUpdated);
       window.removeEventListener('vesselSelected', handleVesselSelected);
     };
-  }, []);
+  }, [locations, allVisibleVessels.length]);
 
   const handleMenuClick = (menu) => {
     setActiveMenu(menu);
     setSelectedIndex(null);
     setSubPanelOpen(false);
-    setSelectedVessel(null); // Clear vessel selection when changing menu
+    setSelectedVessel(null);
   };
 
   const handleSettingsChange = (event) => {
@@ -162,7 +205,157 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect }) 
             <Typography variant="h5" sx={{ mb: 1, fontWeight: 'bold' }}>
               Overview
             </Typography>
-            <Typography variant="body1">Areas of Interest: {locations.length}</Typography>
+            <Typography variant="subtitle1" sx={{ mb: 2, color: '#ccc' }}>
+              Welcome, {userFullName}! {/* Updated to use userFullName */}
+            </Typography>
+
+            {/* Key Stats Section */}
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 2,
+                mb: 3,
+                justifyContent: 'space-between',
+              }}
+            >
+              <Box
+                sx={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  p: 1.5,
+                  flex: '1 1 45%',
+                  textAlign: 'center',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+                }}
+              >
+                <Typography variant="body1" sx={{ color: '#fff', fontWeight: 'bold' }}>
+                  {locations.length}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#ccc' }}>
+                  Areas of Interest
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  p: 1.5,
+                  flex: '1 1 45%',
+                  textAlign: 'center',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+                }}
+              >
+                <Typography variant="body1" sx={{ color: '#fff', fontWeight: 'bold' }}>
+                  {allVisibleVessels.length}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#ccc' }}>
+                  Vessels
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  p: 1.5,
+                  flex: '1 1 45%',
+                  textAlign: 'center',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+                }}
+              >
+                <Typography variant="body1" sx={{ color: '#fff', fontWeight: 'bold' }}>
+                  {locations.reduce((sum, loc) => sum + (loc.newEvents || 0), 0)}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#ccc' }}>
+                  Recent Events
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  p: 1.5,
+                  flex: '1 1 45%',
+                  textAlign: 'center',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+                }}
+              >
+                <Typography variant="body1" sx={{ color: '#fff', fontWeight: 'bold' }}>
+                  {new Date().toLocaleTimeString()}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#ccc' }}>
+                  Last Updated
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Vessels Section */}
+            <Box
+              sx={{
+                maxHeight: 'calc(100vh - 300px)',
+                overflowY: 'auto',
+                pr: 1,
+                '&::-webkit-scrollbar': { width: '8px' },
+                '&::-webkit-scrollbar-thumb': { backgroundColor: '#555', borderRadius: '4px' },
+                '&::-webkit-scrollbar-track': { backgroundColor: 'rgba(0, 0, 0, 0.2)' },
+              }}
+            >
+              {allVisibleVessels.length > 0 && (
+                <>
+                  <Typography variant="h6" sx={{ color: '#fff', fontWeight: 'bold', mb: 1 }}>
+                    Vessels ({allVisibleVessels.length})
+                  </Typography>
+                  {allVisibleVessels.map((feature, index) => {
+                    const props = feature.properties;
+                    return (
+                      <Box
+                        key={props.mmsi || index}
+                        sx={{
+                          backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                          borderRadius: '8px',
+                          p: 2,
+                          mb: 1,
+                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+                          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.5)',
+                            cursor: 'pointer',
+                          },
+                        }}
+                        onClick={() => {
+                          setSelectedVessel(feature);
+                          setActiveMenu('aoi');
+                          setSubPanelOpen(true);
+                        }}
+                      >
+                        <Typography variant="subtitle2" sx={{ color: '#fff', fontWeight: 'bold', mb: 0.5 }}>
+                          {props.name || 'Unknown Vessel'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#ccc' }}>
+                          <strong>MMSI:</strong> {props.mmsi}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#ccc' }}>
+                          <strong>Type:</strong> {props.shipType || 'N/A'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#ccc' }}>
+                          <strong>Speed:</strong> {props.sog} knots
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#ccc' }}>
+                          <strong>Timestamp:</strong> {props.timestamp}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </>
+              )}
+
+              {allVisibleVessels.length === 0 && (
+                <Typography variant="body2" sx={{ color: '#ccc', fontStyle: 'italic' }}>
+                  No vessels detected at this time.
+                </Typography>
+              )}
+            </Box>
           </Box>
         );
       case 'highlights':
@@ -313,8 +506,10 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect }) 
           setSelectedIndex={setSelectedIndex}
           setSubPanelOpen={setSubPanelOpen}
           aisMarkers={aisMarkers}
-          selectedVessel={selectedVessel} // Pass selected vessel
-          setSelectedVessel={setSelectedVessel} // Pass setter for vessel
+          selectedVessel={selectedVessel}
+          setSelectedVessel={setSelectedVessel}
+          showPaths={showPaths}
+          togglePaths={togglePaths}
         />
       );
     }

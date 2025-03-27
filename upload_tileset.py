@@ -8,7 +8,7 @@ def main():
     
     # Your Mapbox username and desired tileset ID
     username = "simonvp"
-    tileset_id = "Skysat321updated160220250859321"
+    tileset_id = "Skysat321black160220250859321"
     
     # Full path to the GeoTIFF file
     file_path = "/Users/mountainmedia/Downloads/Skysat67cm_16022025_0859_321.tif"
