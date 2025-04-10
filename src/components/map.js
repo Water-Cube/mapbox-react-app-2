@@ -1,9 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import VesselFinderAIS from './VesselFinderAIS';
 import Markers from './markers';
+import './map.css';
 
-const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togglePaths }) => {
+// Create a memoized version of VesselFinderAIS to prevent unnecessary re-renders
+const MemoizedVesselFinderAIS = React.memo(VesselFinderAIS);
+
+const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togglePaths, isAisEnabled = false }) => {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const tilesetsRef = useRef([]);
@@ -11,7 +16,6 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togg
   const [isSupported, setIsSupported] = useState(true);
   const [coordinates, setCoordinates] = useState({ lat: '--', lng: '--' });
   const [mapStyle, setMapStyle] = useState('dark');
-  const [selectedTileset, setSelectedTileset] = useState(null);
 
   useEffect(() => {
     if (!mapboxgl.supported()) {
@@ -37,9 +41,25 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togg
       if (onMapLoad) onMapLoad(mapRef.current);
 
       mapRef.current.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
+      mapRef.current.addControl(new mapboxgl.NavigationControl(), 'bottom-right', { offset: [0, -50] });
 
       mapRef.current.on('mousemove', (e) => {
         setCoordinates({ lat: e.lngLat.lat.toFixed(4), lng: e.lngLat.lng.toFixed(4) });
+      });
+
+      // Add satellite layer
+      mapRef.current.on('load', () => {
+        mapRef.current.addSource('satellite', {
+          type: 'raster',
+          url: 'mapbox://mapbox.satellite'
+        });
+
+        mapRef.current.addLayer({
+          id: 'satellite-layer',
+          type: 'raster',
+          source: 'satellite',
+          layout: { visibility: 'none' }
+        });
       });
     };
 
@@ -117,30 +137,12 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togg
   }, [selectedCoordinates]);
 
   const toggleMapStyle = () => {
-    const newStyle =
-      mapStyle === 'dark'
-        ? 'mapbox://styles/mapbox/satellite-streets-v11'
-        : 'mapbox://styles/mapbox/dark-v11';
-
-    setMapStyle(mapStyle === 'dark' ? 'satellite' : 'dark');
     if (mapRef.current) {
-      mapRef.current.setStyle(newStyle);
+      const isSatelliteVisible = mapRef.current.getLayoutProperty('satellite-layer', 'visibility') === 'visible';
+      mapRef.current.setLayoutProperty('satellite-layer', 'visibility', isSatelliteVisible ? 'none' : 'visible');
+      setMapStyle(isSatelliteVisible ? 'dark' : 'satellite');
     }
   };
-
-  useEffect(() => {
-    const handleTilesetSelect = (event) => {
-      const tileset = event.detail;
-      console.log('Tileset selected in MapboxExample:', tileset);
-      setSelectedTileset(tileset);
-    };
-
-    window.addEventListener('tilesetSelected', handleTilesetSelect);
-
-    return () => {
-      window.removeEventListener('tilesetSelected', handleTilesetSelect);
-    };
-  }, []);
 
   return (
     <>
@@ -189,13 +191,16 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togg
       </div>
       <div ref={mapContainerRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
       {map && (
-        <Markers
-          map={map}
-          userId={userId}
-          showControls={false} // Disable Markers' own button
-          showPaths={showPaths}
-          togglePaths={togglePaths}
-        />
+        <>
+          <Markers
+            map={map}
+            userId={userId}
+            showControls={false}
+            showPaths={showPaths}
+            togglePaths={togglePaths}
+          />
+          <MemoizedVesselFinderAIS map={map} isEnabled={isAisEnabled} />
+        </>
       )}
     </>
   );
