@@ -22,8 +22,10 @@ import {
   Description as DescriptionIcon,
   QuestionAnswer as QuestionAnswerIcon,
   Support as SupportIcon,
+  DirectionsBoat as DirectionsBoatIcon,
 } from '@mui/icons-material';
 import AoiPanel from './AoiTab';
+import AISLive from './AISLive';
 
 const TOTAL_PANEL_WIDTH = 340;
 const ICON_COLUMN_WIDTH = 55;
@@ -39,22 +41,30 @@ function isPointInBounds([lng, lat], [minLng, minLat, maxLng, maxLat]) {
   return lng >= minLng && lng <= maxLng && lat >= minLat && lat <= maxLat;
 }
 
-const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, showPaths, togglePaths }) => {
+const SidePanelComposite = ({ 
+  onLocationSelect, 
+  userId, 
+  map, 
+  onTilesetSelect, 
+  showPaths, 
+  togglePaths, 
+  isAisEnabled, 
+  toggleAisTracking 
+}) => {
   const [activeMenu, setActiveMenu] = useState('overview');
   const [locations, setLocations] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [subPanelOpen, setSubPanelOpen] = useState(false);
   const [settings, setSettings] = useState({
     ais: false,
-    aiAnalysis: false,
-    analysisReport: true,
-    notifications: true,
-    autoRefresh: false,
+    paths: false,
+    vessels: false,
   });
   const [aisMarkers, setAisMarkers] = useState({ active: [], all: [] });
-  const [allVisibleVessels, setAllVisibleVessels] = useState([]);
   const [selectedVessel, setSelectedVessel] = useState(null);
-  const [userFullName, setUserFullName] = useState(''); // New state for full_name
+  const [allVisibleVessels, setAllVisibleVessels] = useState([]);
+  const [selectedVesselSource, setSelectedVesselSource] = useState(null);
+  const [userFullName, setUserFullName] = useState('');
 
   useEffect(() => {
     const userFile = `/data/users/${userId}.json`;
@@ -63,7 +73,7 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, sh
       .then((data) => {
         const normalLocations = [];
         const tilesets = data.tilesets || [];
-        setUserFullName(data.full_name || 'User'); // Set full_name from JSON, fallback to 'User'
+        setUserFullName(data.full_name || 'User');
         Promise.all(
           tilesets.map(async (ts) => {
             const imageDateCET = ts.date.replace(/Z|[+-]\d{2}:\d{2}$/, '');
@@ -130,7 +140,12 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, sh
   useEffect(() => {
     const handleAisMarkersUpdated = (event) => {
       const { active = [], all = [] } = event.detail || {};
-      console.log('AIS Markers Updated - Active:', active.length, 'All:', all.length);
+      // Set to false to disable console logs
+      const DEBUG_MODE = false;
+      
+      if (DEBUG_MODE) {
+        console.log('AIS Markers Updated - Active:', active.length, 'All:', all.length);
+      }
 
       const uniqueVesselsMap = new Map();
       all.forEach((vessel) => {
@@ -145,7 +160,10 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, sh
         }
       });
       const uniqueVessels = Array.from(uniqueVesselsMap.values());
-      console.log('Unique vessels by MMSI:', uniqueVessels.length);
+      
+      if (DEBUG_MODE) {
+        console.log('Unique vessels by MMSI:', uniqueVessels.length);
+      }
 
       if (allVisibleVessels.length === 0) {
         const visibleVessels = uniqueVessels.filter((vessel) => {
@@ -158,7 +176,11 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, sh
             loc.tilesets.some((ts) => isPointInBounds([lng, lat], ts.bounds))
           );
         });
-        console.log('Visible unique vessels:', visibleVessels.length);
+        
+        if (DEBUG_MODE) {
+          console.log('Visible unique vessels:', visibleVessels.length);
+        }
+        
         setAllVisibleVessels(visibleVessels);
       }
 
@@ -170,7 +192,13 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, sh
       setSelectedVessel(vessel);
       setActiveMenu('aoi');
       setSubPanelOpen(true);
-      console.log('Vessel selected in SidePanel:', vessel?.properties.mmsi);
+      setSelectedVesselSource(activeMenu);
+      
+      // Set to false to disable console logs
+      const DEBUG_MODE = false;
+      if (DEBUG_MODE) {
+        console.log('Vessel selected in SidePanel:', vessel?.properties.mmsi);
+      }
     };
 
     window.addEventListener('aisMarkersUpdated', handleAisMarkersUpdated);
@@ -180,13 +208,12 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, sh
       window.removeEventListener('aisMarkersUpdated', handleAisMarkersUpdated);
       window.removeEventListener('vesselSelected', handleVesselSelected);
     };
-  }, [locations, allVisibleVessels.length]);
+  }, [locations, allVisibleVessels.length, activeMenu]);
 
   const handleMenuClick = (menu) => {
     setActiveMenu(menu);
-    setSelectedIndex(null);
-    setSubPanelOpen(false);
-    setSelectedVessel(null);
+    // Preserve all state when switching tabs
+    // No state resets at all
   };
 
   const handleSettingsChange = (event) => {
@@ -195,6 +222,18 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, sh
       ...prevSettings,
       [name]: checked,
     }));
+    
+    // If this is the AIS toggle, update the isAisEnabled state
+    if (name === 'ais') {
+      toggleAisTracking(checked);
+    }
+  };
+
+  const handleVesselClick = (feature) => {
+    setSelectedVessel(feature);
+    setActiveMenu('aoi');
+    setSubPanelOpen(true);
+    setSelectedVesselSource(activeMenu);
   };
 
   const renderSimpleContent = () => {
@@ -202,14 +241,15 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, sh
       case 'overview':
         return (
           <Box sx={{ p: 2, color: '#fff' }}>
-            <Typography variant="h5" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Overview
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                Overview
+              </Typography>
+            </Box>
             <Typography variant="subtitle1" sx={{ mb: 2, color: '#ccc' }}>
-              Welcome, {userFullName}! {/* Updated to use userFullName */}
+              Welcome, {userFullName}!
             </Typography>
 
-            {/* Key Stats Section */}
             <Box
               sx={{
                 display: 'flex',
@@ -281,15 +321,14 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, sh
                 }}
               >
                 <Typography variant="body1" sx={{ color: '#fff', fontWeight: 'bold' }}>
-                  {new Date().toLocaleTimeString()}
+                  {aisMarkers.active.length}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#ccc' }}>
-                  Last Updated
+                  Active AIS Markers
                 </Typography>
               </Box>
             </Box>
 
-            {/* Vessels Section */}
             <Box
               sx={{
                 maxHeight: 'calc(100vh - 300px)',
@@ -324,9 +363,7 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, sh
                           },
                         }}
                         onClick={() => {
-                          setSelectedVessel(feature);
-                          setActiveMenu('aoi');
-                          setSubPanelOpen(true);
+                          handleVesselClick(feature);
                         }}
                       >
                         <Typography variant="subtitle2" sx={{ color: '#fff', fontWeight: 'bold', mb: 0.5 }}>
@@ -358,6 +395,13 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, sh
             </Box>
           </Box>
         );
+      case 'ais-live':
+        return (
+          <AISLive 
+            isAisEnabled={isAisEnabled} 
+            toggleAisTracking={toggleAisTracking} 
+          />
+        );
       case 'highlights':
         return (
           <Box sx={{ p: 2, color: '#fff' }}>
@@ -382,12 +426,12 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, sh
                 label={<Typography sx={{ color: '#fff' }}>AIS Tracking (Premium)</Typography>}
               />
               <FormControlLabel
-                control={<Switch checked={settings.aiAnalysis} onChange={handleSettingsChange} name="aiAnalysis" disabled />}
-                label={<Typography sx={{ color: '#fff' }}>AI Analysis (Premium)</Typography>}
+                control={<Switch checked={settings.paths} onChange={handleSettingsChange} name="paths" disabled />}
+                label={<Typography sx={{ color: '#fff' }}>Paths Tracking (Premium)</Typography>}
               />
               <FormControlLabel
-                control={<Switch checked={settings.analysisReport} onChange={handleSettingsChange} name="analysisReport" />}
-                label={<Typography sx={{ color: '#fff' }}>Analysis Report</Typography>}
+                control={<Switch checked={settings.vessels} onChange={handleSettingsChange} name="vessels" disabled />}
+                label={<Typography sx={{ color: '#fff' }}>Vessels Tracking (Premium)</Typography>}
               />
               <Divider sx={{ my: 2, backgroundColor: '#444' }} />
               <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 'medium', mb: 1 }}>
@@ -494,26 +538,34 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, sh
   };
 
   const renderActiveContent = () => {
-    if (activeMenu === 'aoi') {
-      return (
-        <AoiPanel
-          map={map}
-          locations={locations}
-          selectedIndex={selectedIndex}
-          subPanelOpen={subPanelOpen}
-          onLocationSelect={onLocationSelect}
-          onTilesetSelect={onTilesetSelect}
-          setSelectedIndex={setSelectedIndex}
-          setSubPanelOpen={setSubPanelOpen}
-          aisMarkers={aisMarkers}
-          selectedVessel={selectedVessel}
-          setSelectedVessel={setSelectedVessel}
-          showPaths={showPaths}
-          togglePaths={togglePaths}
-        />
-      );
-    }
-    return renderSimpleContent();
+    // Always render the AoiPanel component, but hide it when not active
+    return (
+      <>
+        <Box sx={{ display: activeMenu === 'aoi' ? 'block' : 'none' }}>
+          <AoiPanel
+            map={map}
+            locations={locations}
+            selectedIndex={selectedIndex}
+            subPanelOpen={subPanelOpen}
+            onLocationSelect={onLocationSelect}
+            onTilesetSelect={onTilesetSelect}
+            setSelectedIndex={setSelectedIndex}
+            setSubPanelOpen={(open) => setSubPanelOpen(open)}
+            aisMarkers={aisMarkers}
+            selectedVessel={selectedVessel}
+            setSelectedVessel={setSelectedVessel}
+            showPaths={showPaths}
+            togglePaths={togglePaths}
+            setActiveMenu={setActiveMenu}
+            selectedVesselSource={selectedVesselSource}
+            setSelectedVesselSource={setSelectedVesselSource}
+          />
+        </Box>
+        <Box sx={{ display: activeMenu !== 'aoi' ? 'block' : 'none' }}>
+          {renderSimpleContent()}
+        </Box>
+      </>
+    );
   };
 
   return (
@@ -559,6 +611,9 @@ const SidePanelComposite = ({ onLocationSelect, userId, map, onTilesetSelect, sh
           </ListItemButton>
           <ListItemButton onClick={() => handleMenuClick('aoi')} sx={{ justifyContent: 'center', mb: 1 }}>
             <MapIcon sx={{ color: activeMenu === 'aoi' ? 'primary.main' : '#fff' }} />
+          </ListItemButton>
+          <ListItemButton onClick={() => handleMenuClick('ais-live')} sx={{ justifyContent: 'center', mb: 1 }}>
+            <DirectionsBoatIcon sx={{ color: activeMenu === 'ais-live' ? 'primary.main' : '#fff' }} />
           </ListItemButton>
           <ListItemButton onClick={() => handleMenuClick('highlights')} sx={{ justifyContent: 'center', mb: 1 }}>
             <StarIcon sx={{ color: activeMenu === 'highlights' ? 'primary.main' : '#fff' }} />

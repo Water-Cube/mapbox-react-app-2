@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 // eslint-disable-next-line no-unused-vars
 import mapboxgl from 'mapbox-gl';
 
@@ -6,9 +6,13 @@ const Markers = ({ map: mapProp, userId, showControls = false, showPaths, toggle
   const [aisData, setAisData] = useState(null);
   const [selectedTileset, setSelectedTileset] = useState(null);
   const [localMap, setLocalMap] = useState(null);
+  const [focusedVessel, setFocusedVessel] = useState(null);
+  const [pathTime, setPathTime] = useState(null);
+  const [visibleMarkers, setVisibleMarkers] = useState(new Set());
+  const markersRef = useRef(new Map());
 
   // Color palette for different vessel paths
-  const PATH_COLORS = [
+  const PATH_COLORS = useMemo(() => [
     '#1f77b4',  // Blue
     '#ff7f0e',  // Orange
     '#2ca02c',  // Green
@@ -19,15 +23,17 @@ const Markers = ({ map: mapProp, userId, showControls = false, showPaths, toggle
     '#7f7f7f',  // Gray
     '#bcbd22',  // Olive
     '#17becf'   // Cyan
-  ];
+  ], []); // Empty dependency array since colors are static
+
+  // Add zoom threshold constant
+  const ZOOM_THRESHOLD = 10; // Only show markers when zoomed in more than this level
 
   // Sync localMap with mapProp
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (mapProp && mapProp !== localMap) {
       setLocalMap(mapProp);
     }
-  }, [mapProp]);
+  }, [mapProp, localMap]);
 
   // Load AIS data and arrow image
   useEffect(() => {
@@ -96,15 +102,41 @@ const Markers = ({ map: mapProp, userId, showControls = false, showPaths, toggle
         });
       }
     };
-  }, [localMap, userId]);
+  }, [localMap, userId, showPaths, PATH_COLORS]);
 
   // Handle tileset selection
   useEffect(() => {
     if (!localMap) return;
     const handleTilesetSelect = (event) => setSelectedTileset(event.detail);
+    const handleClearAisData = () => {
+      // Remove layers and sources if they exist
+      ['ais-ships-layer', 'ais-paths-layer'].forEach(layer => {
+        if (localMap.getLayer(layer)) localMap.removeLayer(layer);
+      });
+      ['ais-ships', 'ais-paths'].forEach(source => {
+        if (localMap.getSource(source)) localMap.removeSource(source);
+      });
+      
+      // Clear the selected tileset
+      setSelectedTileset(null);
+      window.dispatchEvent(new CustomEvent('tilesetSelected', { detail: null }));
+      
+      // Dispatch event with empty active vessels
+      window.dispatchEvent(new CustomEvent('aisMarkersUpdated', { 
+        detail: { 
+          active: [], 
+          all: aisData ? aisData.features : [] 
+        } 
+      }));
+    };
+
     window.addEventListener('tilesetSelected', handleTilesetSelect);
-    return () => window.removeEventListener('tilesetSelected', handleTilesetSelect);
-  }, [localMap]);
+    window.addEventListener('clearAisData', handleClearAisData);
+    return () => {
+      window.removeEventListener('tilesetSelected', handleTilesetSelect);
+      window.removeEventListener('clearAisData', handleClearAisData);
+    };
+  }, [localMap, aisData]);
 
   // Update AIS markers and paths
   useEffect(() => {
@@ -120,6 +152,10 @@ const Markers = ({ map: mapProp, userId, showControls = false, showPaths, toggle
       ['ais-ships', 'ais-paths'].forEach(source => {
         if (localMap.getSource(source)) localMap.removeSource(source);
       });
+      
+      // Clean up markers properly
+      markersRef.current.forEach(marker => marker.remove());
+      markersRef.current.clear();
       
       // Dispatch event with empty active vessels
       window.dispatchEvent(new CustomEvent('aisMarkersUpdated', { 
@@ -164,14 +200,18 @@ const Markers = ({ map: mapProp, userId, showControls = false, showPaths, toggle
         return;
       }
 
-      if (!shipTracks[mmsi]) {
-        shipTracks[mmsi] = [];
+      // Only include tracks from the last 24 hours before the tileset time
+      const twentyFourHoursBefore = new Date(tilesetTime.getTime() - 24 * 60 * 60 * 1000);
+      if (timestamp >= twentyFourHoursBefore && timestamp <= tilesetTime) {
+        if (!shipTracks[mmsi]) {
+          shipTracks[mmsi] = [];
+        }
+        
+        shipTracks[mmsi].push({ 
+          feature, 
+          timestamp 
+        });
       }
-      
-      shipTracks[mmsi].push({ 
-        feature, 
-        timestamp 
-      });
     });
 
     // Sort tracks chronologically for each ship
@@ -191,14 +231,23 @@ const Markers = ({ map: mapProp, userId, showControls = false, showPaths, toggle
       }
     });
 
-    // Generate full paths for each ship
+    // Filter path coordinates based on selected time
     const pathFeatures = Object.entries(shipPositionsAtTime).map(([mmsi, currentPosition], index) => {
       const track = shipTracks[mmsi];
       
       // Filter coordinates up to and including the current position
-      const pathCoords = track
-        .filter(entry => entry.timestamp <= currentPosition.timestamp)
-        .map(entry => entry.feature.geometry.coordinates);
+      let pathCoords;
+      if (focusedVessel === mmsi && pathTime) {
+        // For focused vessel, show path up to selected time
+        pathCoords = track
+          .filter(entry => entry.timestamp <= pathTime)
+          .map(entry => entry.feature.geometry.coordinates);
+      } else {
+        // For other vessels, show full path up to current position
+        pathCoords = track
+          .filter(entry => entry.timestamp <= currentPosition.timestamp)
+          .map(entry => entry.feature.geometry.coordinates);
+      }
 
       return {
         type: 'Feature',
@@ -206,7 +255,7 @@ const Markers = ({ map: mapProp, userId, showControls = false, showPaths, toggle
           mmsi,
           startTimestamp: track[0].timestamp.toISOString(),
           endTimestamp: currentPosition.timestamp.toISOString(),
-          color: PATH_COLORS[index % PATH_COLORS.length] // Cycle through colors
+          color: PATH_COLORS[index % PATH_COLORS.length]
         },
         geometry: { 
           type: 'LineString', 
@@ -215,7 +264,31 @@ const Markers = ({ map: mapProp, userId, showControls = false, showPaths, toggle
       };
     });
 
-    const filteredFeatures = Object.values(shipPositionsAtTime).map(entry => entry.feature);
+    // Get vessel positions at the selected time
+    const vesselPositionsAtTime = {};
+    Object.entries(shipTracks).forEach(([mmsi, track]) => {
+      if (focusedVessel === mmsi && pathTime) {
+        // For focused vessel, get position at selected time
+        const positionAtTime = track
+          .filter(entry => entry.timestamp <= pathTime)
+          .pop();
+        if (positionAtTime) {
+          vesselPositionsAtTime[mmsi] = positionAtTime;
+        }
+      } else {
+        // For other vessels, get position at tileset time
+        const positionAtTime = track
+          .filter(entry => entry.timestamp <= tilesetTime)
+          .pop();
+        if (positionAtTime) {
+          vesselPositionsAtTime[mmsi] = positionAtTime;
+        }
+      }
+    });
+
+    const filteredFeatures = Object.values(vesselPositionsAtTime)
+      .map(entry => entry.feature)
+      .filter(feature => !focusedVessel || feature.properties.mmsi === focusedVessel);
     
     const filteredGeojson = { 
       type: 'FeatureCollection', 
@@ -224,7 +297,7 @@ const Markers = ({ map: mapProp, userId, showControls = false, showPaths, toggle
 
     const pathsGeojson = { 
       type: 'FeatureCollection', 
-      features: pathFeatures 
+      features: pathFeatures.filter(feature => !focusedVessel || feature.properties.mmsi === focusedVessel)
     };
 
     // Dispatch event for other components
@@ -250,34 +323,122 @@ const Markers = ({ map: mapProp, userId, showControls = false, showPaths, toggle
     // Ships layer
     if (!localMap.getSource('ais-ships')) {
       localMap.addSource('ais-ships', { type: 'geojson', data: filteredGeojson });
-      localMap.addLayer({
-        id: 'ais-ships-layer',
-        type: 'symbol',
-        source: 'ais-ships',
-        layout: {
-          'icon-image': 'arrow',
-          'icon-size': ['interpolate', ['linear'], ['zoom'], 10, 0.05, 14, 0.1, 18, 0.1],
-          'icon-rotate': ['get', 'cog'],
-          'icon-allow-overlap': true,
-          'icon-rotation-alignment': 'map',
-        },
-        paint: { 'icon-opacity': 1 },
-      });
       
-      const handleMarkerClick = (e) => {
-        const feature = e.features[0];
-        window.dispatchEvent(new CustomEvent('vesselSelected', { detail: feature }));
-      };
-
-      const handleMouseEnter = () => localMap.getCanvas().style.cursor = 'pointer';
-      const handleMouseLeave = () => localMap.getCanvas().style.cursor = '';
-
-      localMap.on('click', 'ais-ships-layer', handleMarkerClick);
-      localMap.on('mouseenter', 'ais-ships-layer', handleMouseEnter);
-      localMap.on('mouseleave', 'ais-ships-layer', handleMouseLeave);
-    } else {
-      localMap.getSource('ais-ships').setData(filteredGeojson);
+      // Add CSS for the vessel markers
+      const style = document.createElement('style');
+      style.textContent = `
+        .vessel-marker {
+          width: 32px;
+          height: 32px;
+          background: none;
+          cursor: pointer;
+        }
+        .vessel-marker svg {
+          width: 100%;
+          height: 100%;
+        }
+        .vessel-status {
+          position: absolute;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          border: 1.5px solid #fff;
+          box-shadow: 0 0 4px rgba(0,0,0,0.5);
+          top: -2px;
+          right: -2px;
+          z-index: 2;
+        }
+        .status-working {
+          background-color: rgba(76, 175, 80, 0.9);
+        }
+        .status-transporting {
+          background-color: rgba(33, 150, 243, 0.9);
+        }
+        .status-emptying {
+          background-color: rgba(255, 152, 0, 0.9);
+        }
+        .status-not-active {
+          background-color: rgba(158, 158, 158, 0.9);
+        }
+      `;
+      document.head.appendChild(style);
     }
+
+    // Update markers
+    const updateMarkers = () => {
+      // Clear all existing markers first
+      markersRef.current.forEach(marker => marker.remove());
+      markersRef.current.clear();
+
+      // Create markers for all filtered features
+      filteredFeatures.forEach(feature => {
+        if (!feature?.properties?.mmsi || !feature?.geometry?.coordinates) {
+          console.warn('Invalid feature:', feature);
+          return;
+        }
+
+        const { coordinates } = feature.geometry;
+        const { mmsi, cog = 0 } = feature.properties;
+        const [lng, lat] = coordinates;
+
+        // Create marker element
+        const el = document.createElement('div');
+        el.className = 'vessel-marker';
+
+        // Assign color based on MMSI
+        let color = '#007bff'; // Default blue
+        if (mmsi === '205196000') color = '#ff0000'; // Red
+        else if (mmsi === '205210000') color = '#00ff00'; // Green
+        else if (mmsi === '205214000') color = '#ffff00'; // Yellow
+        else if (mmsi === '219033078') color = '#ff00ff'; // Magenta
+        else if (mmsi === '245043000') color = '#00ffff'; // Cyan
+
+        // Create element content with fixed size SVG
+        el.innerHTML = `
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2L4 20L12 14L20 20L12 2Z" fill="${color}"/>
+          </svg>
+        `;
+
+        // Add status indicator
+        const status = getVesselStatus(mmsi);
+        if (status) {
+          const statusEl = document.createElement('div');
+          statusEl.className = `vessel-status status-${status}`;
+          el.appendChild(statusEl);
+        }
+
+        // Create new marker with proper options
+        const marker = new mapboxgl.Marker({
+          element: el,
+          anchor: 'center',
+          rotation: cog,
+          rotationAlignment: 'map',
+          pitchAlignment: 'map',
+          offset: [0, 0]
+        })
+        .setLngLat([lng, lat])
+        .addTo(localMap);
+
+        // Add click handler
+        el.addEventListener('click', () => {
+          window.dispatchEvent(new CustomEvent('vesselSelected', { detail: feature }));
+        });
+
+        // Store marker reference
+        markersRef.current.set(mmsi, marker);
+      });
+    };
+
+    // Initial marker update
+    updateMarkers();
+
+    // Add listener for vessel analysis updates
+    const handleVesselAnalysisUpdate = () => {
+      updateMarkers();
+    };
+
+    window.addEventListener('vesselAnalysisUpdated', handleVesselAnalysisUpdate);
 
     // Paths layer
     if (!localMap.getSource('ais-paths')) {
@@ -292,7 +453,7 @@ const Markers = ({ map: mapProp, userId, showControls = false, showPaths, toggle
           'visibility': showPaths ? 'visible' : 'none'
         },
         paint: {
-          'line-color': ['get', 'color'], // Use color from feature properties
+          'line-color': ['get', 'color'],
           'line-width': 2,
           'line-opacity': 0.7
         }
@@ -302,7 +463,54 @@ const Markers = ({ map: mapProp, userId, showControls = false, showPaths, toggle
       localMap.setLayoutProperty('ais-paths-layer', 'visibility', showPaths ? 'visible' : 'none');
     }
 
-  }, [localMap, aisData, selectedTileset, userId, showPaths]);
+    return () => {
+      window.removeEventListener('vesselAnalysisUpdated', handleVesselAnalysisUpdate);
+      markersRef.current.forEach(marker => marker.remove());
+      markersRef.current.clear();
+    };
+
+  }, [localMap, aisData, selectedTileset, userId, showPaths, PATH_COLORS, focusedVessel, pathTime]);
+
+  useEffect(() => {
+    if (!localMap || !userId) return;
+
+    const handleVesselFocusChanged = (event) => {
+      setFocusedVessel(event.detail.mmsi);
+    };
+
+    const handlePathTimeChanged = (event) => {
+      setPathTime(event.detail.timestamp);
+    };
+
+    window.addEventListener('vesselFocusChanged', handleVesselFocusChanged);
+    window.addEventListener('pathTimeChanged', handlePathTimeChanged);
+
+    return () => {
+      window.removeEventListener('vesselFocusChanged', handleVesselFocusChanged);
+      window.removeEventListener('pathTimeChanged', handlePathTimeChanged);
+    };
+  }, [localMap, userId]);
+
+  // Add a function to get vessel status
+  const getVesselStatus = (mmsi) => {
+    // Get the analysis from the global event
+    const analysisEvent = new CustomEvent('getVesselAnalysis', { 
+      detail: { mmsi },
+      cancelable: true 
+    });
+    window.dispatchEvent(analysisEvent);
+    
+    if (analysisEvent.preventDefault) {  // Fix: Check if preventDefault exists
+      const analysis = analysisEvent.detail.analysis;
+      if (analysis && analysis.content) {
+        const match = analysis.content.match(/Category:\s*([^-\n]+)/);
+        if (match) {
+          return match[1].trim().toLowerCase().replace(/\s+/g, '-');
+        }
+      }
+    }
+    return null;
+  };
 
   return showControls ? (
     <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 1 }}>

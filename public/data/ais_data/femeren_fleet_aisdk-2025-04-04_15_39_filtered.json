@@ -1,0 +1,140 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+
+
+    {
+      "type": "Feature", 
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.366043,
+          54.589271
+        ]
+      },
+      "properties": {
+        "timestamp": "04/04/2025 15:39:00",
+        "mmsi": "205196000",
+        "name": "NP 460",
+        "shipType": "Other",
+        "status": "N/A",
+        "sog": "0.0",
+        "cog": "0.0",
+        "destination": "-",
+        "eta": "09/04/2025 13:00:00"
+      }
+    },
+
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.380977,
+          54.638947
+        ]
+      },
+      "properties": {
+        "timestamp": "04/04/2025 15:39:00",
+        "mmsi": "205214000",
+        "name": "MAYA",
+        "shipType": "Other",
+        "status": "N/A",
+        "sog": "0.0",
+        "cog": "0.0",
+        "destination": "-",
+        "eta": "09/04/2025 13:00:00"
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.374737,
+          54.638343
+        ]
+      },
+      "properties": {
+        "timestamp": "04/04/2025 15:39:00",
+        "mmsi": "205210000",
+        "name": "WISMAR",
+        "shipType": "Other",
+        "status": "N/A",
+        "sog": "0.0",
+        "cog": "0.0",
+        "destination": "-",
+        "eta": "09/04/2025 13:00:00"
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.347130,
+          54.630685
+        ]
+      },
+      "properties": {
+        "timestamp": "04/04/2025 15:39:00",
+        "mmsi": "245043000",
+        "name": "REYNAERT",
+        "shipType": "Other",
+        "status": "N/A",
+        "sog": "0.0",
+        "cog": "0.0",
+        "destination": "-",
+        "eta": "09/04/2025 13:00:00"
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.376274,
+          54.638852
+        ]
+      },
+      "properties": {
+        "timestamp": "04/04/2025 15:39:00",
+        "mmsi": "219033077",
+        "name": "IVY1",
+        "shipType": "Other",
+        "status": "N/A",
+        "sog": "0.0",
+        "cog": "0.0",
+        "destination": "-",
+        "eta": "09/04/2025 13:00:00"
+      }
+    },
+
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.376695,
+          54.638894
+        ]
+      },
+      "properties": {
+        "timestamp": "04/04/2025 15:39:00",
+        "mmsi": "219033078",
+        "name": "IVY2",
+        "shipType": "Other",
+        "status": "N/A",
+        "sog": "0.0",
+        "cog": "0.0",
+        "destination": "-",
+        "eta": "09/04/2025 13:00:00"
+      }
+    }
+
+  ]
+}
