@@ -21,6 +21,7 @@ import {
 } from '@mui/icons-material';
 import VesselAnalysis from './VesselAnalysis';
 import VesselScreenshot from './VesselScreenshot';
+import { useTimeline } from '../context/TimelineContext';
 
 const AoiPanel = ({
   map,
@@ -51,6 +52,7 @@ const AoiPanel = ({
   const [showPolygons, setShowPolygons] = useState(true);
   const [selectedSubarea, setSelectedSubarea] = useState(null);
   const [vesselInSubarea, setVesselInSubarea] = useState(null);
+  const { setShowTimeline } = useTimeline();
 
   useEffect(() => {
     const handleVesselFocusChanged = (event) => {
@@ -656,6 +658,7 @@ const AoiPanel = ({
     if (locationLower.includes('teglholmen')) return '/images/teglholmen.png';
     if (locationLower.includes('nyborg')) return '/images/nyborg.png';
     if (locationLower.includes('femern')) return '/images/femern.png';
+    if (locationLower.includes('sevastopol')) return '/images/APSS.jpg';
     return '/images/placeholder.png';
   };
 
@@ -1057,14 +1060,14 @@ const AoiPanel = ({
             </Box>
 
             <Box sx={{ mb: 2 }}>
-            <FormControl fullWidth sx={{ mb: 2 }}>
+              <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel id="date-select-label" sx={{ color: '#ccc' }}>Select Date</InputLabel>
-              <Select
-                labelId="date-select-label"
-                value={selectedDate}
+                <Select
+                  labelId="date-select-label"
+                  value={selectedDate}
                   onChange={handleDateChange}
-                sx={{
-                  color: '#fff',
+                  sx={{
+                    color: '#fff',
                     '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.23)' },
                     '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.5)' },
                     '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' },
@@ -1077,20 +1080,20 @@ const AoiPanel = ({
                   {Object.keys(tilesetsByDate).map((date) => (
                     <MenuItem key={date} value={date} sx={{ color: '#000' }}>
                       {date}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
               {selectedDate && (
-              <FormControl fullWidth sx={{ mb: 2 }}>
+                <FormControl fullWidth sx={{ mb: 2 }}>
                   <InputLabel id="tileset-select-label" sx={{ color: '#ccc' }}>Select Time</InputLabel>
-                <Select
+                  <Select
                     labelId="tileset-select-label"
                     value={selectedSpecialTileset || ''}
                     onChange={handleTilesetChange}
-                  sx={{
-                    color: '#fff',
+                    sx={{
+                      color: '#fff',
                       '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.23)' },
                       '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.5)' },
                       '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' },
@@ -1099,59 +1102,59 @@ const AoiPanel = ({
                   >
                     <MenuItem value="" sx={{ color: '#000' }}>
                       <em>No time selected</em>
-                  </MenuItem>
+                    </MenuItem>
                     {tilesetsForSelectedDate.map((ts) => (
                       <MenuItem key={ts.id} value={ts.id} sx={{ color: '#000' }}>
                         {ts.name}
                       </MenuItem>
                     ))}
-                </Select>
-              </FormControl>
-            )}
+                  </Select>
+                </FormControl>
+              )}
             </Box>
 
             {selectedDate && selectedSpecialTileset && (
-            <Box sx={{ p: 2, backgroundColor: 'rgba(0, 0, 0, 0.3)', borderRadius: 1, mb: 2 }}>
-              {currentAoi.tilesets
+              <Box sx={{ p: 2, backgroundColor: 'rgba(0, 0, 0, 0.3)', borderRadius: 1, mb: 2 }}>
+                {currentAoi.tilesets
                   .filter((ts) => ts.id === selectedSpecialTileset)
-                .map((ts) => {
-                  const { date, time } = formatDateTimeCET(ts.dateCET);
-                  return (
-                    <Box key={ts.id}>
-                      <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 'bold' }}>
-                        {ts.name}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: '#ccc' }}>
-                        <strong>Location:</strong> {ts.location}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: '#ccc' }}>
-                        <strong>Date:</strong> {date}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: '#ccc' }}>
-                        <strong>Time (CET):</strong> {time}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: '#ccc' }}>
-                        <strong>New events:</strong> {ts.newEvents}
-                      </Typography>
-                      {ts.newEvents > 0 && (
-                        <Box sx={{ mt: 2 }}>
-                          <Button
-                            variant="outlined"
-                            color="secondary"
-                            startIcon={<CloudDownloadIcon />}
-                            component="a"
-                            href="/FE-1006_25.pdf"
-                            download
-                            sx={{ borderColor: '#fff', color: '#fff' }}
-                          >
-                            Download recent report
-                          </Button>
-                        </Box>
-                      )}
-                    </Box>
-                  );
-                })}
-            </Box>
+                  .map((ts) => {
+                    const { date, time } = formatDateTimeCET(ts.dateCET);
+                    return (
+                      <Box key={ts.id}>
+                        <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 'bold' }}>
+                          {ts.name}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#ccc' }}>
+                          <strong>Location:</strong> {ts.location}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#ccc' }}>
+                          <strong>Date:</strong> {date}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#ccc' }}>
+                          <strong>Time (CET):</strong> {time}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#ccc' }}>
+                          <strong>New events:</strong> {ts.newEvents}
+                        </Typography>
+                        {ts.newEvents > 0 && (
+                          <Box sx={{ mt: 2 }}>
+                            <Button
+                              variant="outlined"
+                              color="secondary"
+                              startIcon={<CloudDownloadIcon />}
+                              component="a"
+                              href="/FE-1006_25.pdf"
+                              download
+                              sx={{ borderColor: '#fff', color: '#fff' }}
+                            >
+                              Download recent report
+                            </Button>
+                          </Box>
+                        )}
+                      </Box>
+                    );
+                  })}
+              </Box>
             )}
 
             {selectedDate && !selectedSpecialTileset && (
@@ -1536,7 +1539,16 @@ const AoiPanel = ({
     }
   };
 
-  return renderAoiContent();
+  useEffect(() => {
+    // Show timeline only when in details view and no vessel is selected
+    setShowTimeline(selectedIndex !== null && subPanelOpen && !selectedVessel);
+  }, [selectedIndex, subPanelOpen, selectedVessel, setShowTimeline]);
+
+  return (
+    <Box sx={{ padding: '20px' }}>
+      {renderAoiContent()}
+    </Box>
+  );
 };
 
 export default AoiPanel;

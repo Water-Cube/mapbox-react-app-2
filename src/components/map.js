@@ -4,11 +4,12 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import VesselFinderAIS from './VesselFinderAIS';
 import Markers from './markers';
 import './map.css';
+import Sidepanel from './sidepanel';
 
 // Create a memoized version of VesselFinderAIS to prevent unnecessary re-renders
 const MemoizedVesselFinderAIS = React.memo(VesselFinderAIS);
 
-const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togglePaths, isAisEnabled = false }) => {
+const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togglePaths, isAisEnabled = false, toggleAisTracking }) => {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const tilesetsRef = useRef([]);
@@ -16,6 +17,26 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togg
   const [isSupported, setIsSupported] = useState(true);
   const [coordinates, setCoordinates] = useState({ lat: '--', lng: '--' });
   const [mapStyle, setMapStyle] = useState('dark');
+
+  const handleLocationSelect = (coordinates) => {
+    if (mapRef.current) {
+      mapRef.current.flyTo({
+        center: coordinates,
+        zoom: 12,
+        speed: 1.5,
+      });
+    }
+  };
+
+  const handleTilesetSelect = (tilesetId) => {
+    if (mapRef.current) {
+      const tilesets = tilesetsRef.current;
+      tilesets.forEach(ts => {
+        const isVisible = ts.id === tilesetId;
+        mapRef.current.setLayoutProperty(ts.id, 'visibility', isVisible ? 'visible' : 'none');
+      });
+    }
+  };
 
   useEffect(() => {
     if (!mapboxgl.supported()) {
@@ -145,64 +166,27 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togg
   };
 
   return (
-    <>
-      {!isSupported && <p style={{ color: 'red' }}>WebGL is not supported in your browser.</p>}
-      <div
-        style={{
-          position: 'absolute',
-          top: 10,
-          right: 10,
-          zIndex: 11,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}
-      >
-        <div
-          style={{
-            fontSize: '14px',
-            color: 'white',
-            background: 'rgba(0, 0, 0, 0.6)',
-            padding: '6px 12px',
-            borderRadius: '5px',
-            boxShadow: '0px 2px 5px rgba(0,0,0,0.2)',
-          }}
-        >
-          Lat: {coordinates.lat}, Lng: {coordinates.lng}
+    <div className="map-container" ref={mapContainerRef}>
+      {!isSupported && (
+        <div className="error-message">
+          Your browser does not support Mapbox GL JS. Please use a modern browser.
         </div>
-        <button
-          onClick={toggleMapStyle}
-          style={{
-            background: 'rgba(0, 0, 0, 0.6)',
-            color: 'white',
-            padding: '6px 12px',
-            borderRadius: '5px',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '14px',
-            boxShadow: '0px 2px 5px rgba(0,0,0,0.2)',
-            transition: 'background 0.3s',
-          }}
-          onMouseOver={(e) => (e.target.style.background = 'rgba(255, 255, 255, 0.2)')}
-          onMouseOut={(e) => (e.target.style.background = 'rgba(0, 0, 0, 0.6)')}
-        >
-          {mapStyle === 'dark' ? 'Satellite' : 'Standard'}
-        </button>
-      </div>
-      <div ref={mapContainerRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+      )}
       {map && (
         <>
           <Markers
             map={map}
+            selectedCoordinates={selectedCoordinates}
+            onLocationSelect={handleLocationSelect}
             userId={userId}
-            showControls={false}
+            onTilesetSelect={handleTilesetSelect}
             showPaths={showPaths}
             togglePaths={togglePaths}
           />
-          <MemoizedVesselFinderAIS map={map} isEnabled={isAisEnabled} />
+          <MemoizedVesselFinderAIS map={map} isEnabled={isAisEnabled} toggleAisTracking={toggleAisTracking} />
         </>
       )}
-    </>
+    </div>
   );
 };
 

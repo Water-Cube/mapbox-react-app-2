@@ -2,12 +2,13 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 
-const VesselFinderAIS = ({ map, isEnabled = false }) => {
+const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking }) => {
     const [vessels, setVessels] = useState([]);
     const [targetVessels, setTargetVessels] = useState([]);
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    const API_KEY = 'WS-19E27BF9-8D0E48';
+    const API_KEY = 'WS-31F23A10-716D12';
+    const API_BASE_URL = 'https://api.vesselfinder.com';
     
     // List of MMSI numbers to track - wrapped in useMemo to prevent dependency changes
     const TARGET_MMSIS = useMemo(() => [
@@ -20,7 +21,7 @@ const VesselFinderAIS = ({ map, isEnabled = false }) => {
     ], []);
     
     // Increase the interval to 15 minutes to avoid rate limiting
-    const REFRESH_INTERVAL = 900000; // 15 minutes in milliseconds
+    const REFRESH_INTERVAL = 70000; // 70 seconds in milliseconds
     // Set to false to disable console logs
     const DEBUG_MODE = false;
     // Maximum number of retries for API calls
