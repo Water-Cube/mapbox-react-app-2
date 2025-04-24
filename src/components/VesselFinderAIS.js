@@ -150,7 +150,7 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking, onLoadingC
         }
 
         try {
-            const listManagerUrl = `/listmanager?userkey=${API_KEY}&action=list`;
+            const listManagerUrl = `${API_BASE_URL}/listmanager?userkey=${API_KEY}&action=list`;
             log('Checking current list of tracked vessels');
             
             const listManagerResponse = await fetch(listManagerUrl, {
@@ -217,7 +217,7 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking, onLoadingC
             
             // If not, add them one by one
             for (const mmsi of uniqueMmsis) {
-                const listManagerUrl = `/listmanager?userkey=${API_KEY}&action=add&mmsi=${mmsi}`;
+                const listManagerUrl = `${API_BASE_URL}/listmanager?userkey=${API_KEY}&action=add&mmsi=${mmsi}`;
                 log(`Adding vessel ${mmsi} to tracked list`);
                 
                 try {
@@ -307,7 +307,7 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking, onLoadingC
             }
             
             // Now fetch the vessel data using VesselsList endpoint
-            const vesselsListUrl = `/vesselslist?userkey=${API_KEY}&format=json`;
+            const vesselsListUrl = `${API_BASE_URL}/vesselslist?userkey=${API_KEY}&format=json`;
             log('VesselsList URL:', vesselsListUrl);
             
             const vesselsListResponse = await fetch(vesselsListUrl, {
