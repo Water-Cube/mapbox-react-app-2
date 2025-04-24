@@ -10,20 +10,6 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking, onLoadingC
     const API_KEY = 'WS-31F23A10-716D12';
     const API_BASE_URL = 'https://api.vesselfinder.com';
     
-    // Function to create proxy-compatible URL
-    const createProxyUrl = useCallback((url) => {
-        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        
-        // In development, use the proxy setting in package.json
-        if (isLocalhost) {
-            return url.replace(API_BASE_URL, '');
-        } 
-        
-        // In production, use a CORS proxy service
-        // Using cors-anywhere hosted publicly - good for development but should be replaced with your own proxy for production
-        return `https://corsproxy.io/?${encodeURIComponent(url)}`;
-    }, [API_BASE_URL]);
-
     // Update parent component when loading state changes
     useEffect(() => {
         if (onLoadingChange) {
@@ -164,8 +150,22 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking, onLoadingC
         }
 
         try {
-            const apiUrl = `${API_BASE_URL}/listmanager?userkey=${API_KEY}&action=list`;
-            const listManagerUrl = createProxyUrl(apiUrl);
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            let listManagerUrl;
+            
+            if (isLocalhost) {
+                // In development, use the proxy from package.json
+                listManagerUrl = `/listmanager?userkey=${API_KEY}&action=list`;
+            } else {
+                // In production, use a direct API call through the CORS proxy
+                // Format the URL properly to avoid parameter encoding issues
+                const baseUrl = "https://corsproxy.io/?";
+                const apiUrl = `${API_BASE_URL}/listmanager`;
+                const encodedApiUrl = encodeURIComponent(apiUrl);
+                const params = `userkey=${API_KEY}&action=list`;
+                listManagerUrl = `${baseUrl}${encodedApiUrl}?${params}`;
+            }
+            
             log('Checking current list of tracked vessels');
             
             const listManagerResponse = await fetch(listManagerUrl, {
@@ -210,7 +210,7 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking, onLoadingC
             console.error('Error checking tracked vessels:', error);
             return false;
         }
-    }, [API_KEY, TARGET_MMSIS, log, createProxyUrl]);
+    }, [API_KEY, TARGET_MMSIS, log]);
 
     // Helper function to add vessels to the tracking list
     const addVesselsToList = useCallback(async () => {
@@ -232,8 +232,22 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking, onLoadingC
             
             // If not, add them one by one
             for (const mmsi of uniqueMmsis) {
-                const apiUrl = `${API_BASE_URL}/listmanager?userkey=${API_KEY}&action=add&mmsi=${mmsi}`;
-                const listManagerUrl = createProxyUrl(apiUrl);
+                const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                let listManagerUrl;
+                
+                if (isLocalhost) {
+                    // In development, use the proxy from package.json
+                    listManagerUrl = `/listmanager?userkey=${API_KEY}&action=add&mmsi=${mmsi}`;
+                } else {
+                    // In production, use a direct API call through the CORS proxy
+                    // Format the URL properly to avoid parameter encoding issues
+                    const baseUrl = "https://corsproxy.io/?";
+                    const apiUrl = `${API_BASE_URL}/listmanager`;
+                    const encodedApiUrl = encodeURIComponent(apiUrl);
+                    const params = `userkey=${API_KEY}&action=add&mmsi=${mmsi}`;
+                    listManagerUrl = `${baseUrl}${encodedApiUrl}?${params}`;
+                }
+                
                 log(`Adding vessel ${mmsi} to tracked list`);
                 
                 try {
@@ -282,7 +296,7 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking, onLoadingC
             console.error('Error adding vessels to list:', error);
             return false;
         }
-    }, [API_KEY, TARGET_MMSIS, log, checkTrackedVessels, createProxyUrl]);
+    }, [API_KEY, TARGET_MMSIS, log, checkTrackedVessels]);
 
     // Fetch vessel data function
     const fetchVesselData = useCallback(async () => {
@@ -323,8 +337,22 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking, onLoadingC
             }
             
             // Now fetch the vessel data using VesselsList endpoint
-            const apiUrl = `${API_BASE_URL}/vesselslist?userkey=${API_KEY}&format=json`;
-            const vesselsListUrl = createProxyUrl(apiUrl);
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            let vesselsListUrl;
+            
+            if (isLocalhost) {
+                // In development, use the proxy from package.json
+                vesselsListUrl = `/vesselslist?userkey=${API_KEY}&format=json`;
+            } else {
+                // In production, use a direct API call through the CORS proxy
+                // Format the URL properly to avoid parameter encoding issues
+                const baseUrl = "https://corsproxy.io/?";
+                const apiUrl = `${API_BASE_URL}/vesselslist`;
+                const encodedApiUrl = encodeURIComponent(apiUrl);
+                const params = `userkey=${API_KEY}&format=json`;
+                vesselsListUrl = `${baseUrl}${encodedApiUrl}?${params}`;
+            }
+            
             log('VesselsList URL:', vesselsListUrl);
             
             const vesselsListResponse = await fetch(vesselsListUrl, {
@@ -422,7 +450,7 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking, onLoadingC
                 safeSetState(setIsLoading, false);
             }
         }
-    }, [map, isLoading, safeSetState, handleApiError, log, TARGET_MMSIS, API_KEY, REFRESH_INTERVAL, addVesselsToList, isEnabled, createProxyUrl]);
+    }, [map, isLoading, safeSetState, handleApiError, log, TARGET_MMSIS, API_KEY, REFRESH_INTERVAL, addVesselsToList, isEnabled]);
 
     // Set up the component
     useEffect(() => {
