@@ -1408,27 +1408,6 @@ const AoiPanel = ({
                 {props.name || 'Unknown Vessel'}
             </Typography>
           </Box>
-            <Button
-              variant="contained"
-              size="small"
-              color={focusedVessel === props.mmsi ? "secondary" : "primary"}
-              onClick={() => {
-                const newFocusedVessel = focusedVessel === props.mmsi ? null : props.mmsi;
-                setFocusedVessel(newFocusedVessel);
-                window.dispatchEvent(new CustomEvent('vesselFocusChanged', { 
-                  detail: { mmsi: newFocusedVessel } 
-                }));
-              }}
-              sx={{ 
-                minWidth: '100px',
-                backgroundColor: focusedVessel === props.mmsi ? '#f44336' : '#2196f3',
-                '&:hover': {
-                  backgroundColor: focusedVessel === props.mmsi ? '#d32f2f' : '#1976d2'
-                }
-              }}
-            >
-              {focusedVessel === props.mmsi ? 'Unfocus' : 'Focus'}
-            </Button>
           </Box>
           
           <Box

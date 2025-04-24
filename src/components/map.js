@@ -5,11 +5,12 @@ import VesselFinderAIS from './VesselFinderAIS';
 import Markers from './markers';
 import './map.css';
 import Sidepanel from './sidepanel';
+import Timeline from './Timeline';
 
 // Create a memoized version of VesselFinderAIS to prevent unnecessary re-renders
 const MemoizedVesselFinderAIS = React.memo(VesselFinderAIS);
 
-const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togglePaths, isAisEnabled = false, toggleAisTracking }) => {
+const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togglePaths, isAisEnabled = false, toggleAisTracking, onAisLoadingChange }) => {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const tilesetsRef = useRef([]);
@@ -17,6 +18,7 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togg
   const [isSupported, setIsSupported] = useState(true);
   const [coordinates, setCoordinates] = useState({ lat: '--', lng: '--' });
   const [mapStyle, setMapStyle] = useState('dark');
+  const [aisLoading, setAisLoading] = useState(false);
 
   const handleLocationSelect = (coordinates) => {
     if (mapRef.current) {
@@ -35,6 +37,14 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togg
         const isVisible = ts.id === tilesetId;
         mapRef.current.setLayoutProperty(ts.id, 'visibility', isVisible ? 'visible' : 'none');
       });
+    }
+  };
+
+  // Handle AIS loading state changes
+  const handleAisLoadingChange = (loading) => {
+    setAisLoading(loading);
+    if (onAisLoadingChange) {
+      onAisLoadingChange(loading);
     }
   };
 
@@ -183,7 +193,12 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togg
             showPaths={showPaths}
             togglePaths={togglePaths}
           />
-          <MemoizedVesselFinderAIS map={map} isEnabled={isAisEnabled} toggleAisTracking={toggleAisTracking} />
+          <MemoizedVesselFinderAIS 
+            map={map} 
+            isEnabled={isAisEnabled} 
+            toggleAisTracking={toggleAisTracking}
+            onLoadingChange={handleAisLoadingChange}
+          />
         </>
       )}
     </div>

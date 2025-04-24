@@ -49,7 +49,8 @@ const SidePanelComposite = ({
   showPaths, 
   togglePaths, 
   isAisEnabled, 
-  toggleAisTracking 
+  toggleAisTracking,
+  aisLoading = false,
 }) => {
   const [activeMenu, setActiveMenu] = useState('overview');
   const [locations, setLocations] = useState([]);
@@ -399,7 +400,8 @@ const SidePanelComposite = ({
         return (
           <AISLive 
             isAisEnabled={isAisEnabled} 
-            toggleAisTracking={toggleAisTracking} 
+            toggleAisTracking={toggleAisTracking}
+            isLoading={aisLoading} 
           />
         );
       case 'highlights':

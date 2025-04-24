@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 
-const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking }) => {
+const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking, onLoadingChange }) => {
     const [vessels, setVessels] = useState([]);
     const [targetVessels, setTargetVessels] = useState([]);
     const [error, setError] = useState(null);
@@ -10,6 +10,13 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking }) => {
     const API_KEY = 'WS-31F23A10-716D12';
     const API_BASE_URL = 'https://api.vesselfinder.com';
     
+    // Update parent component when loading state changes
+    useEffect(() => {
+        if (onLoadingChange) {
+            onLoadingChange(isLoading);
+        }
+    }, [isLoading, onLoadingChange]);
+
     // List of MMSI numbers to track - wrapped in useMemo to prevent dependency changes
     const TARGET_MMSIS = useMemo(() => [
         '205196000',
@@ -20,8 +27,8 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking }) => {
         '245043000'
     ], []);
     
-    // Increase the interval to 15 minutes to avoid rate limiting
-    const REFRESH_INTERVAL = 70000; // 70 seconds in milliseconds
+    // Set refresh interval to 5 minutes to avoid rate limiting
+    const REFRESH_INTERVAL = 300000; // 5 minutes in milliseconds
     // Set to false to disable console logs
     const DEBUG_MODE = false;
     // Maximum number of retries for API calls
@@ -418,7 +425,7 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking }) => {
                 }
             }, 1000);
 
-            // Set up interval to fetch data every 15 minutes
+            // Set up interval to fetch data every 5 minutes
             intervalIdRef.current = setInterval(fetchVesselData, REFRESH_INTERVAL);
             
             // Debug: Log when the component mounts and when the interval is set up
@@ -497,7 +504,7 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking }) => {
 
                     // Create the arrow SVG
                     el.innerHTML = `
-                        <svg width="24" height="24" viewBox="0 0 24 24" style="transform: rotate(${rotation}deg);">
+                        <svg width="32" height="32" viewBox="0 0 24 24" style="transform: rotate(${rotation}deg);">
                             <path d="M12 2L4 20L12 14L20 20L12 2Z" fill="${color}"/>
                         </svg>
                     `;
@@ -523,14 +530,43 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking }) => {
                         closeOnClick: true
                     }).setHTML(popupContent);
 
-                    // Add marker to map
-                    new mapboxgl.Marker({
+                    // Add marker to map without popup
+                    const marker = new mapboxgl.Marker({
                         element: el,
                         rotation: rotation
                     })
                     .setLngLat([vessel.AIS.LONGITUDE, vessel.AIS.LATITUDE])
-                    .setPopup(popup)
                     .addTo(map);
+                    
+                    // Add click handler for vessel selection
+                    el.addEventListener('click', () => {
+                        // Convert AIS vessel data to GeoJSON feature format
+                        const feature = {
+                            type: 'Feature',
+                            properties: {
+                                mmsi: vessel.AIS.MMSI.toString(),
+                                name: vessel.AIS.NAME || 'Unknown Vessel',
+                                imo: vessel.AIS.IMO || 'N/A',
+                                sog: vessel.AIS.SPEED || 0,
+                                cog: vessel.AIS.COURSE || 0,
+                                heading: vessel.AIS.HEADING || 0,
+                                destination: vessel.AIS.DESTINATION || 'N/A',
+                                timestamp: vessel.AIS.TIMESTAMP || new Date().toISOString(),
+                                shipType: 'AIS Live Vessel',
+                                aisSource: 'VesselFinder',
+                                color: color
+                            },
+                            geometry: {
+                                type: 'Point',
+                                coordinates: [vessel.AIS.LONGITUDE, vessel.AIS.LATITUDE]
+                            }
+                        };
+                        
+                        // Dispatch vessel selection event
+                        window.dispatchEvent(new CustomEvent('vesselSelected', { 
+                            detail: feature 
+                        }));
+                    });
                 }
             });
         }
@@ -553,8 +589,8 @@ const VesselFinderAIS = ({ map, isEnabled = false, toggleAisTracking }) => {
         const style = document.createElement('style');
         style.textContent = `
             .vessel-marker {
-                width: 24px;
-                height: 24px;
+                width: 32px;
+                height: 32px;
                 cursor: pointer;
                 display: flex;
                 align-items: center;

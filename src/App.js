@@ -33,12 +33,13 @@ const App = () => {
   const [userId, setUserId] = useState(null);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [map, setMap] = useState(null);
-  const [aisMarkers, setAisMarkers] = useState({ active: [], all: [] }); // Added for AIS markers
-  const [selectedVessel, setSelectedVessel] = useState(null); // Added for vessel selection
-  const [showPaths, setShowPaths] = useState(false); // Added for path visibility
-  const [isAisEnabled, setIsAisEnabled] = useState(false); // Added for AIS tracking state
+  const [aisMarkers, setAisMarkers] = useState({ active: [], all: [] });
+  const [selectedVessel, setSelectedVessel] = useState(null);
+  const [showPaths, setShowPaths] = useState(false);
+  const [isAisEnabled, setIsAisEnabled] = useState(false);
   const [availableDates, setAvailableDates] = useState([]);
   const [userData, setUserData] = useState(null);
+  const [aisLoading, setAisLoading] = useState(false);
 
   const handleLocationSelect = (coordinates) => {
     setSelectedCoordinates(coordinates);
@@ -115,6 +116,11 @@ const App = () => {
     });
   };
 
+  // Handle AIS loading state changes
+  const handleAisLoadingChange = (loading) => {
+    setAisLoading(loading);
+  };
+
   return (
     <TimelineProvider>
       <div className="App">
@@ -130,6 +136,7 @@ const App = () => {
               togglePaths={togglePaths}
               isAisEnabled={isAisEnabled}
               toggleAisTracking={toggleAisTracking}
+              onAisLoadingChange={handleAisLoadingChange}
             />
             <SidePanel
               onLocationSelect={handleLocationSelect}
@@ -137,14 +144,15 @@ const App = () => {
               togglePanel={togglePanel}
               userId={userId}
               map={map}
-              aisMarkers={aisMarkers} // Pass to SidePanel
-              selectedVessel={selectedVessel} // Pass to SidePanel
-              setSelectedVessel={setSelectedVessel} // Pass to SidePanel
-              showPaths={showPaths} // Pass to SidePanel
-              togglePaths={togglePaths} // Pass to SidePanel
+              aisMarkers={aisMarkers}
+              selectedVessel={selectedVessel}
+              setSelectedVessel={setSelectedVessel}
+              showPaths={showPaths}
+              togglePaths={togglePaths}
               isAisEnabled={isAisEnabled}
               toggleAisTracking={toggleAisTracking}
               userData={userData}
+              aisLoading={aisLoading}
             />
             <TimelineWrapper>
               <TimelineContainer>

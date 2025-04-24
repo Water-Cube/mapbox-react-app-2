@@ -132,8 +132,20 @@ Activity:
 - Status: [Active/Stationary/Anchored]
 - Pattern: [Normal/Irregular/Unusual]
 
-Visual Analysis:
+${vessel.properties.mmsi === "245043000" ? 
+`Visual Analysis:
+Analyze the image and identify:
+- Current position (DOCK, SEA, HOLDING AREA, or TUNNEL TRENCH WORKING AREA)
+- Presence of floating discharge line nearby (if visible)
+- Crane position (GREEN CRANE UPRIGHT or GREEN CRANE OUT, if applicable)
+- Any other relevant visual cues that help determine the vessel's status
+
+IMPORTANT: If no vessel is visible in the image, simply write "No image provided" for this section.` 
+: 
+`Visual Analysis:
 EXACTLY THIS TEXT AND NOTHING ELSE: "Instructions needed"
+
+IMPORTANT: If no vessel is visible in the image, replace "Instructions needed" with "No image provided".`}
 
 Pattern Analysis:
 EXACTLY THIS TEXT AND NOTHING ELSE: "Instructions needed"
@@ -142,6 +154,31 @@ Vessel Status:
 - Category: [Working/Transporting/Emptying/Not active] (ONLY the status, no explanations)
 - Explanation: [Brief explanation of why this status was assigned]
 IMPORTANT: A vessel cannot be considered "Working" if it is at 0 speed and at a dock. In such cases, it should be marked as "Not active" instead.
+
+${vessel.properties.mmsi === "245043000" ? `
+SPECIAL RULES FOR VESSEL RAYNAERT (TSHD - Trailing Suction Hopper Dredger):
+When analyzing this specific vessel (MMSI: 245043000), follow these exact status classification rules:
+
+1. POSITION: DOCK
+   - Speed 0: Status = NO ACTIVITY
+   - Speed 0-7: Status = TRANSPORT
+
+2. POSITION: SEA
+   - Speed 0, NEAR FLOATING DISCHARGE LINE: Status = EMPTYING
+   - Speed 0: Status = NO ACTIVITY
+   - Speed >0: Status = TRANSPORT
+
+3. POSITION: HOLDING AREA
+   - Speed 0: Status = NO ACTIVITY
+   - Speed 0-7: Status = TRANSPORT
+
+4. POSITION: TUNNEL TRENCH WORKING AREA
+   - Speed 0: Status = NO ACTIVITY
+   - Speed 0, NEAR FLOATING DISCHARGE LINE: Status = EMPTYING
+   - Speed 0-7, GREEN CRANE UPRIGHT: Status = TRANSPORT
+   - Speed 0-4, GREEN CRANE OUT: Status = WORKING
+   - Speed >7: Status = TRANSPORT
+` : ''}
 
 Risk Assessment:
 - Risk Level: [Low/Medium/High]
