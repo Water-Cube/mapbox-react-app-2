@@ -23,9 +23,11 @@ import {
   QuestionAnswer as QuestionAnswerIcon,
   Support as SupportIcon,
   DirectionsBoat as DirectionsBoatIcon,
+  AddLocation as AddLocationIcon,
 } from '@mui/icons-material';
 import AoiPanel from './AoiTab';
 import AISLive from './AISLive';
+import AreaRequestPanel from './AreaRequestPanel';
 
 const TOTAL_PANEL_WIDTH = 340;
 const ICON_COLUMN_WIDTH = 55;
@@ -527,6 +529,8 @@ const SidePanelComposite = ({
             <Typography variant="body1">Profile content goes here.</Typography>
           </Box>
         );
+      case 'area-request':
+        return <AreaRequestPanel map={map} />;
       default:
         return (
           <Box sx={{ p: 2, color: '#fff' }}>
@@ -616,6 +620,9 @@ const SidePanelComposite = ({
           </ListItemButton>
           <ListItemButton onClick={() => handleMenuClick('ais-live')} sx={{ justifyContent: 'center', mb: 1 }}>
             <DirectionsBoatIcon sx={{ color: activeMenu === 'ais-live' ? 'primary.main' : '#fff' }} />
+          </ListItemButton>
+          <ListItemButton onClick={() => handleMenuClick('area-request')} sx={{ justifyContent: 'center', mb: 1 }}>
+            <AddLocationIcon sx={{ color: activeMenu === 'area-request' ? 'primary.main' : '#fff' }} />
           </ListItemButton>
           <ListItemButton onClick={() => handleMenuClick('highlights')} sx={{ justifyContent: 'center', mb: 1 }}>
             <StarIcon sx={{ color: activeMenu === 'highlights' ? 'primary.main' : '#fff' }} />

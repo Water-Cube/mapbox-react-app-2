@@ -5,6 +5,7 @@ import MapboxExample from './components/map';
 import SidePanel from './components/sidepanel';
 import LoginPage from './components/LoginPage';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { TimelineProvider } from './context/TimelineContext';
 import Timeline from './components/Timeline';
 
