@@ -906,7 +906,7 @@ const AoiPanel = ({
           });
 
         return (
-          <Box sx={{ p: 2, color: '#fff' }}>
+          <Box sx={{ px: 1, py: 2, color: '#fff' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <IconButton
                 onClick={() => {
@@ -1390,7 +1390,7 @@ const AoiPanel = ({
       const vesselImage = props.mmsi ? `/images/vessel_${props.mmsi}.png` : '/images/vessel_205210000.png';
 
       return (
-        <Box sx={{ p: 2, color: '#fff' }}>
+        <Box sx={{ px: 1, py: 2, color: '#fff' }}>
           <Box sx={{ 
             display: 'flex', 
             alignItems: 'center', 

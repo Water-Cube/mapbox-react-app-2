@@ -29,7 +29,7 @@ import AoiPanel from './AoiTab';
 import AISLive from './AISLive';
 import AreaRequestPanel from './AreaRequestPanel';
 
-const TOTAL_PANEL_WIDTH = 340;
+const TOTAL_PANEL_WIDTH = 390;
 const ICON_COLUMN_WIDTH = 55;
 const MAPBOX_ACCESS_TOKEN =
   'sk.eyJ1Ijoic2ltb252cCIsImEiOiJjbTZzczM1Y3kwOHJrMmpzZjFlNXUwOWNtIn0.449LWA2pOpadwlMduS9TJA';
@@ -647,6 +647,9 @@ const SidePanelComposite = ({
           overflowY: 'auto',
           backgroundColor: 'rgba(0, 0, 0, 0.7)',
           backdropFilter: 'blur(8px)',
+          '&::-webkit-scrollbar': { width: '5px' },
+          '&::-webkit-scrollbar-thumb': { backgroundColor: '#555', borderRadius: '4px' },
+          '&::-webkit-scrollbar-track': { backgroundColor: 'rgba(0, 0, 0, 0.1)' },
         }}
       >
         {renderActiveContent()}

@@ -182,6 +182,19 @@ const MapboxExample = ({ selectedCoordinates, userId, onMapLoad, showPaths, togg
           Your browser does not support Mapbox GL JS. Please use a modern browser.
         </div>
       )}
+      <div style={{
+        position: 'absolute',
+        top: '10px',
+        right: '10px',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        color: '#fff',
+        padding: '5px 10px',
+        borderRadius: '4px',
+        zIndex: 1, // Ensure it's above the map
+        fontSize: '12px'
+      }}>
+        Lng: {coordinates.lng}, Lat: {coordinates.lat}
+      </div>
       {map && (
         <>
           <Markers
